@@ -1,0 +1,130 @@
+{% extends "admin/base_site.html" %}
+{% load i18n log admin_filters %}
+
+{% block coltype %}colM{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block nav-breadcrumbs %}{% endblock %}
+{% block content %}
+<div class="status-dashboard">
+  <div class="status-dashboard-heading">
+    <div>
+      <span class="status-eyebrow">STATUS · УПРАВЛЕНИЕ МАГАЗИНОМ</span>
+      <h1>Добро пожаловать, {{ user.get_short_name|default:user.username }}</h1>
+      <p>Здесь можно управлять ассортиментом и остатками магазина.</p>
+    </div>
+    {% url 'admin:PRILOJENIA1_product_add' as add_product_url %}
+    <a class="status-primary-action" href="{{ add_product_url }}">＋ Добавить товар</a>
+  </div>
+
+  <div class="status-stat-grid">
+    <article class="status-stat-card">
+      <span class="status-stat-label">Всего товаров</span>
+      <strong>{{ dashboard_products_count }}</strong>
+      <span class="status-stat-note">в каталоге магазина</span>
+    </article>
+    <article class="status-stat-card">
+      <span class="status-stat-label">Опубликовано</span>
+      <strong>{{ dashboard_active_count }}</strong>
+      <span class="status-stat-note">видны покупателям</span>
+    </article>
+    <article class="status-stat-card">
+      <span class="status-stat-label">Остаток на складе</span>
+      <strong>{{ dashboard_stock_count }}</strong>
+      <span class="status-stat-note">единиц по всем размерам</span>
+    </article>
+  </div>
+
+  <section class="status-panel">
+    <div class="status-panel-heading">
+      <div>
+        <span class="status-eyebrow">КАТАЛОГ</span>
+        <h2>Управление товарами</h2>
+      </div>
+      <a href="{% url 'admin:PRILOJENIA1_product_changelist' %}">Открыть каталог →</a>
+    </div>
+    <div class="status-model-grid">
+      {% for app in app_list %}
+        {% for model in app.models %}
+        <a class="status-model-card" href="{{ model.admin_url }}">
+          <span class="status-model-icon">✦</span>
+          <span>
+            <strong>{{ model.name }}</strong>
+            <small>Просмотр и редактирование</small>
+          </span>
+          <span class="status-model-arrow">→</span>
+        </a>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="status-panel status-recent-panel">
+    <div class="status-panel-heading">
+      <div>
+        <span class="status-eyebrow">ИСТОРИЯ</span>
+        <h2>Последние действия</h2>
+      </div>
+    </div>
+    {% get_admin_log 5 as admin_log for_user user %}
+    {% if admin_log %}
+      <ul class="status-activity-list">
+        {% for entry in admin_log %}
+        <li>
+          <span class="status-activity-dot"></span>
+          <span>
+            {% if entry.is_addition %}Добавлен{% elif entry.is_change %}Изменён{% else %}Удалён{% endif %}
+            {% if entry.is_deletion or not entry.get_admin_url %}
+              {{ entry.object_repr|to_object_display_value }}
+            {% else %}
+              <a href="{{ entry.get_admin_url }}">{{ entry.object_repr|to_object_display_value }}</a>
+            {% endif %}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="status-empty-activity">Здесь появятся действия после изменения каталога.</p>
+    {% endif %}
+  </section>
+</div>
+<style>
+  .status-dashboard { max-width: 1180px; margin: 0 auto; }
+  .status-dashboard-heading, .status-panel-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+  .status-dashboard-heading { margin: 4px 0 28px; }
+  .status-dashboard-heading h1 { margin: 8px 0; font-size: 27px !important; }
+  .status-dashboard-heading p { margin: 0; color: #71696a; font-size: 13px; }
+  .status-eyebrow { color:#761e2a; font-size:9px; font-weight:700; letter-spacing:.19em; }
+  .status-primary-action { flex:0 0 auto; padding:12px 16px; border-radius:4px; background:#761e2a; color:#fff !important; font-size:12px; font-weight:700; text-decoration:none; }
+  .status-primary-action:hover { background:#55131d; }
+  .status-stat-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:24px; }
+  .status-stat-card, .status-panel { border:1px solid #e8e2e1; border-radius:7px; background:#fff; box-shadow:0 4px 18px #211d1e08; }
+  .status-stat-card { display:flex; min-height:120px; flex-direction:column; justify-content:center; padding:20px 22px; }
+  .status-stat-label { color:#71696a; font-size:11px; }
+  .status-stat-card strong { margin:6px 0 2px; color:#211d1e; font-size:30px; line-height:1.1; }
+  .status-stat-note { color:#938b8b; font-size:10px; }
+  .status-panel { margin-bottom:20px; padding:22px; }
+  .status-panel-heading { margin-bottom:18px; }
+  .status-panel-heading h2 { margin:5px 0 0; color:#211d1e; font-size:16px; }
+  .status-panel-heading > a { color:#761e2a; font-size:11px; font-weight:700; text-decoration:none; }
+  .status-model-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .status-model-card { display:flex; align-items:center; gap:12px; min-width:0; padding:14px; border:1px solid #eee8e7; border-radius:5px; color:#211d1e !important; text-decoration:none; }
+  .status-model-card:hover { border-color:#c9a5a7; background:#fcf8f7; }
+  .status-model-icon { display:grid; width:34px; height:34px; flex:0 0 34px; place-items:center; background:#f7eeee; color:#761e2a; }
+  .status-model-card strong, .status-model-card small { display:block; }
+  .status-model-card strong { font-size:12px; }
+  .status-model-card small { margin-top:4px; color:#938b8b; font-size:10px; }
+  .status-model-arrow { margin-left:auto; color:#761e2a; }
+  .status-activity-list { margin:0; padding:0; list-style:none; }
+  .status-activity-list li { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid #f0ebea; color:#71696a; font-size:11px; }
+  .status-activity-list a { color:#761e2a; }
+  .status-activity-dot { width:6px; height:6px; border-radius:50%; background:#8a3943; }
+  .status-empty-activity { margin:0; color:#938b8b; font-size:11px; }
+  @media(max-width:700px) {
+    .status-dashboard-heading { align-items:flex-start; flex-direction:column; }
+    .status-stat-grid { grid-template-columns:1fr; gap:10px; }
+    .status-stat-card { min-height:90px; }
+    .status-model-grid { grid-template-columns:1fr; }
+    .status-panel { padding:16px; }
+  }
+</style>
+{% endblock %}

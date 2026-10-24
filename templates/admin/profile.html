@@ -1,0 +1,69 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="status-profile-page">
+  <div class="status-profile-heading">
+    <span class="status-eyebrow">УЧЁТНАЯ ЗАПИСЬ</span>
+    <h1>Профиль администратора</h1>
+    <p>Изменения сохраняются в вашей учётной записи.</p>
+  </div>
+
+  <section class="status-profile-form-card">
+    <h2>Личные данные</h2>
+    <p>Укажите имя, которое будет отображаться в панели, и данные для входа.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="profile">
+      {{ profile_form.non_field_errors }}
+      {% for field in profile_form %}
+      <div class="status-form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+      <button class="status-primary-action" type="submit">Сохранить профиль</button>
+    </form>
+  </section>
+
+  <section class="status-profile-form-card">
+    <h2>Смена пароля</h2>
+    <p>Для защиты аккаунта сначала введите текущий пароль.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="password">
+      {{ password_form.non_field_errors }}
+      {% for field in password_form %}
+      <div class="status-form-field">
+        <label for="{{ field.id_for_label }}">
+          {% if field.name == "old_password" %}Текущий пароль{% elif field.name == "new_password1" %}Новый пароль{% else %}Повторите новый пароль{% endif %}
+        </label>
+        {{ field }}
+        {{ field.errors }}
+        {% if field.name == "new_password1" and field.help_text %}<div class="status-help-text">{{ field.help_text|safe }}</div>{% endif %}
+      </div>
+      {% endfor %}
+      <button class="status-primary-action" type="submit">Изменить пароль</button>
+    </form>
+  </section>
+</div>
+<style>
+  .status-profile-page { max-width:850px; margin:0 auto; }
+  .status-profile-heading { margin:4px 0 24px; }
+  .status-profile-heading h1 { margin:8px 0; color:#211d1e; font-size:25px !important; }
+  .status-profile-heading p, .status-profile-form-card > p { color:#71696a; font-size:12px; }
+  .status-profile-form-card { margin-bottom:18px; padding:24px; border:1px solid #e8e2e1; border-radius:7px; background:#fff; box-shadow:0 4px 18px #211d1e08; }
+  .status-profile-form-card h2 { margin:0; color:#211d1e; font-size:16px; }
+  .status-profile-form-card > p { margin:7px 0 20px; }
+  .status-profile-form-card form { max-width:560px; }
+  .status-form-field { margin-bottom:16px; }
+  .status-form-field label { display:block; margin-bottom:6px; color:#413a3b; font-size:11px; font-weight:700; }
+  .status-form-field input { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #ddd5d4; border-radius:4px; background:#fff; }
+  .status-form-field input:focus { border-color:#761e2a; outline:2px solid #761e2a22; }
+  .status-form-field ul.errorlist { margin:5px 0 0; padding:0; color:#a12631; font-size:11px; list-style:none; }
+  .status-help-text { margin-top:6px; color:#71696a; font-size:10px; }
+  .status-help-text ul { margin:5px 0; padding-left:18px; }
+  .status-profile-form-card .status-primary-action { border:0; cursor:pointer; }
+  @media(max-width:600px) { .status-profile-form-card { padding:17px; } }
+</style>
+{% endblock %}
