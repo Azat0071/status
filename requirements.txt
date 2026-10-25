@@ -2,3 +2,4 @@ Django>=6.1,<6.2
 Pillow>=11,<13
 django-unfold>=0.110,<0.111
 gunicorn>=26.2,<27
+whitenoise>=6.9,<7
