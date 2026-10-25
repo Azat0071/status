@@ -28,6 +28,23 @@ python manage.py runserver
 `DJANGO_SECRET_KEY`. Если она не задана, локальный ключ генерируется
 автоматически при запуске приложения.
 
+## Развёртывание с Gunicorn
+
+Gunicorn запускает Django WSGI-приложение. Перед запуском задайте
+переменные окружения для секретного ключа, режима отладки и домена:
+
+```bash
+export DJANGO_SECRET_KEY='ваш-длинный-случайный-секретный-ключ'
+export DJANGO_DEBUG=False
+export DJANGO_ALLOWED_HOSTS='example.com,www.example.com'
+python manage.py migrate
+python manage.py collectstatic --noinput
+gunicorn STATUS_PROJECT.wsgi:application --bind 0.0.0.0:8000 --workers 3
+```
+
+Замените `example.com` на домен сайта. Для локальной разработки используйте
+`python manage.py runserver`.
+
 ## Проверка
 
 ```bash
