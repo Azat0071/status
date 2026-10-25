@@ -30,7 +30,10 @@ python manage.py runserver
 
 ## Развёртывание на Render
 
-В настройках веб-сервиса Render укажите команду запуска `./start.sh`.
+Команда запуска `./start.sh` сохранена в `render.yaml`. Если веб-сервис
+настроен вручную, укажите ту же команду в настройках Render в поле **Start
+Command** (не `.start.sh`). Если сервис подключён к Blueprint, синхронизируйте
+Blueprint с `render.yaml`.
 Перед запуском Gunicorn скрипт применит миграции, соберёт статические файлы
 админки и создаст необходимые таблицы. WhiteNoise обслуживает CSS и JavaScript
 Unfold в production.
