@@ -26,11 +26,22 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or secrets.token_urlsafe(50)
 
 # Set DJANGO_DEBUG=False and DJANGO_ALLOWED_HOSTS for deployment.
 DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in {"true", "1", "yes"}
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
-    if host.strip()
-]
+
+
+def _get_allowed_hosts(environ=None):
+    environment = os.environ if environ is None else environ
+    hosts = [
+        host.strip()
+        for host in environment.get("DJANGO_ALLOWED_HOSTS", "").split(",")
+        if host.strip()
+    ]
+    render_hostname = environment.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+    if render_hostname and render_hostname not in hosts:
+        hosts.append(render_hostname)
+    return hosts
+
+
+ALLOWED_HOSTS = _get_allowed_hosts()
 
 
 # Application definition
