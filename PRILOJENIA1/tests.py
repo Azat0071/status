@@ -1,13 +1,76 @@
 import tempfile
+from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command, CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.contrib.auth import SESSION_KEY
 from django.utils.crypto import get_random_string
 
 from .models import Product, ProductSize
+
+
+class BootstrapAdminCommandTests(TestCase):
+    def test_creates_admin_from_environment_without_printing_password(self):
+        password = get_random_string(40)
+        output = StringIO()
+        with patch.dict(
+            "os.environ",
+            {
+                "ADMIN_USERNAME": "render_admin",
+                "ADMIN_PASSWORD": password,
+                "ADMIN_EMAIL": "admin@example.com",
+            },
+            clear=True,
+        ):
+            call_command("bootstrap_admin", stdout=output)
+
+        user = get_user_model().objects.get(username="render_admin")
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password(password))
+        self.assertEqual(user.email, "admin@example.com")
+        self.assertNotIn(password, output.getvalue())
+
+    def test_existing_admin_is_not_changed_on_restart(self):
+        password = get_random_string(40)
+        user = get_user_model().objects.create_superuser(
+            username="render_admin",
+            email="before@example.com",
+            password=password,
+        )
+        output = StringIO()
+        with patch.dict(
+            "os.environ",
+            {
+                "ADMIN_USERNAME": "render_admin",
+                "ADMIN_PASSWORD": get_random_string(40),
+                "ADMIN_EMAIL": "after@example.com",
+            },
+            clear=True,
+        ):
+            call_command("bootstrap_admin", stdout=output)
+
+        user.refresh_from_db()
+        self.assertTrue(user.check_password(password))
+        self.assertEqual(user.email, "before@example.com")
+        self.assertIn("already exists", output.getvalue())
+
+    def test_missing_environment_configuration_is_a_noop(self):
+        output = StringIO()
+        with patch.dict("os.environ", {}, clear=True):
+            call_command("bootstrap_admin", stdout=output)
+
+        self.assertIn("skipped", output.getvalue())
+        self.assertFalse(get_user_model().objects.exists())
+
+    def test_partial_environment_configuration_fails_explicitly(self):
+        with patch.dict("os.environ", {"ADMIN_USERNAME": "render_admin"}, clear=True):
+            with self.assertRaisesMessage(CommandError, "ADMIN_USERNAME and ADMIN_PASSWORD"):
+                call_command("bootstrap_admin")
 
 
 class HomePageTests(TestCase):
