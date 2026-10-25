@@ -1,0 +1,206 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Коллекция STATUS | Наследие</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#080808',
+                        surface: '#111111',
+                        surfaceBorder: '#222222',
+                        deepBurgundy: {
+                            DEFAULT: '#5a0f17',
+                            hover: '#7a131e',
+                        },
+                        steelGray: '#999999',
+                    },
+                    fontFamily: {
+                        header: ['"Cinzel"', 'serif'],
+                        sans: ['"Inter"', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-obsidian text-white font-sans antialiased">
+    <header class="fixed top-0 left-0 w-full z-40 bg-obsidian/95 border-b border-surfaceBorder backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3 sm:gap-6">
+                <a href="{% url 'home' %}" class="flex flex-col" aria-label="STATUS — главная">
+                    <span class="font-header text-2xl md:text-3xl font-black tracking-[0.4em] uppercase">STATUS</span>
+                    <span class="text-[8px] tracking-[0.6em] text-steelGray font-semibold uppercase -mt-1">HAUTE COUTURE</span>
+                </a>
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'customer_profile' %}" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
+                {% else %}
+                    <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
+                {% endif %}
+            </div>
+            <nav class="hidden md:flex items-center gap-10 text-[11px] tracking-[0.25em] font-semibold uppercase text-steelGray">
+                <a href="{% url 'home' %}" class="hover:text-white transition-colors">ГЛАВНАЯ</a>
+                <a href="{% url 'collection' %}" aria-current="page" class="text-[#b83b4b] hover:text-white transition-colors">КОЛЛЕКЦИЯ</a>
+                <a href="{% url 'home' %}#lookbook" class="hover:text-white transition-colors">КАПСУЛА</a>
+            </nav>
+            <div class="flex items-center gap-5">
+                <a href="{% url 'home' %}#concierge" class="text-[10px] tracking-[0.2em] uppercase font-bold text-steelGray hover:text-white transition-colors">
+                    <span class="hidden sm:inline">КОНСЬЕРЖ</span>
+                    <i class="fa-solid fa-arrow-right sm:ml-2" aria-hidden="true"></i>
+                </a>
+                <button id="menu-btn" type="button" class="md:hidden text-lg text-white" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+        <nav id="mobile-menu" class="hidden md:hidden bg-obsidian border-t border-surfaceBorder px-6 py-6">
+            <div class="flex flex-col space-y-4 text-center font-header text-xs tracking-[0.25em] uppercase font-bold text-steelGray">
+                <a href="{% url 'home' %}" class="hover:text-white py-2">ГЛАВНАЯ</a>
+                <a href="{% url 'collection' %}" aria-current="page" class="text-[#b83b4b] hover:text-white py-2">КОЛЛЕКЦИЯ</a>
+                <a href="{% url 'home' %}#lookbook" class="hover:text-white py-2">КАПСУЛА</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="pt-20">
+        <section class="relative overflow-hidden border-b border-surfaceBorder">
+            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_40%,rgba(90,15,23,0.22),transparent_55%)]" aria-hidden="true"></div>
+            <div class="relative max-w-7xl mx-auto px-6 lg:px-12 py-20 sm:py-28 lg:py-36">
+                <div class="max-w-3xl">
+                    <div class="inline-flex items-center gap-3 border-b-2 border-deepBurgundy pb-2 mb-8">
+                        <span class="text-[9px] sm:text-[10px] tracking-[0.4em] uppercase text-white font-bold">STATUS / ОСЕНЬ — ЗИМА 2026</span>
+                    </div>
+                    <h1 class="font-header text-4xl sm:text-6xl lg:text-7xl font-black leading-[1.05] uppercase">
+                        КОЛЛЕКЦИЯ<br>
+                        <span class="text-steelGray">«НАСЛЕДИЕ»</span>
+                    </h1>
+                    <p class="mt-7 max-w-xl text-xs sm:text-sm text-steelGray font-light leading-relaxed">
+                        Выверенные силуэты, благородные фактуры и глубокий оттенок бордо. Каждая вещь создана, чтобы говорить о вашем стиле без лишних слов.
+                    </p>
+                    <a href="#catalog" class="inline-flex items-center gap-4 mt-9 text-[10px] tracking-[0.25em] uppercase font-bold hover:text-steelGray transition-colors">
+                        Смотреть изделия
+                        <i class="fa-solid fa-arrow-down text-deepBurgundy" aria-hidden="true"></i>
+                    </a>
+                </div>
+                <div class="hidden lg:block absolute right-12 bottom-0 w-64 xl:w-80 opacity-40 pointer-events-none" aria-hidden="true">
+                    <img src="{% get_static_prefix %}PRILOJENIA1/logo/log.png" alt="" class="w-full h-72 xl:h-96 object-cover object-top">
+                </div>
+            </div>
+        </section>
+
+        <section id="catalog" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-12 py-16 sm:py-20 lg:py-28">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10 sm:mb-14">
+                <div class="space-y-3">
+                    <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">КАТАЛОГ ИЗДЕЛИЙ</span>
+                    <h2 class="font-header text-2xl sm:text-4xl font-black uppercase tracking-tight">НАЙДИТЕ СВОЙ ОБРАЗ</h2>
+                </div>
+                <div class="flex flex-wrap gap-2 text-[9px] sm:text-[10px] tracking-widest uppercase font-bold" aria-label="Фильтр по категориям">
+                    <button type="button" data-filter="all" aria-pressed="true" class="collection-filter px-4 py-2.5 bg-surface text-white border border-surfaceBorder transition-colors">ВСЕ</button>
+                    <button type="button" data-filter="knit" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ПОЛО И ТРИКОТАЖ</button>
+                    <button type="button" data-filter="pants" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">БРЮКИ</button>
+                    <button type="button" data-filter="outer" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ВЕРХНЯЯ ОДЕЖДА</button>
+                    <button type="button" data-filter="shoes" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ОБУВЬ</button>
+                    <button type="button" data-filter="acc" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">АКСЕССУАРЫ</button>
+                </div>
+            </div>
+
+            <div id="collection-grid" class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 lg:gap-8">
+                {% for product in products %}
+                    <article data-category="{{ product.category }}" class="group bg-surface border border-surfaceBorder p-2 sm:p-4 lg:p-6">
+                        <div class="relative aspect-[4/5] overflow-hidden bg-obsidian border border-surfaceBorder/50">
+                            <img src="{{ product.image }}" alt="{{ product.name }}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
+                            {% if product.totalStock == 0 %}
+                                <span class="absolute top-2 left-2 sm:top-4 sm:left-4 bg-deepBurgundy text-white border border-[#b83b4b] px-2 py-1 text-[7px] sm:text-[9px] tracking-widest uppercase font-bold">НЕТ В НАЛИЧИИ</span>
+                            {% endif %}
+                        </div>
+                        <div class="pt-4 sm:pt-6">
+                            <span class="text-[7px] sm:text-[9px] uppercase tracking-[0.18em] text-deepBurgundy font-bold">{{ product.categoryLabel }}</span>
+                            <h3 class="mt-2 font-header text-[11px] sm:text-base font-bold uppercase leading-snug">{{ product.name }}</h3>
+                            <p class="mt-2 min-h-8 text-[8px] sm:text-xs text-steelGray font-light leading-relaxed line-clamp-2">{{ product.desc }}</p>
+                            <div class="mt-4 pt-3 sm:pt-4 border-t border-surfaceBorder/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <span class="font-header text-[10px] sm:text-sm font-bold">{{ product.priceKGS }} сом</span>
+                                <span class="text-[8px] sm:text-[10px] text-steelGray">
+                                    {% if product.totalStock %}
+                                        В наличии: {{ product.totalStock }} шт.
+                                    {% else %}
+                                        Под заказ
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if product.material or product.color %}
+                                <p class="mt-3 text-[8px] sm:text-[10px] text-steelGray">
+                                    {% if product.material %}{{ product.material }}{% endif %}{% if product.material and product.color %} · {% endif %}{% if product.color %}{{ product.color }}{% endif %}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="col-span-full border border-surfaceBorder bg-surface/50 p-10 sm:p-16 text-center">
+                        <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">STATUS</span>
+                        <p class="mt-4 font-header text-lg sm:text-2xl font-bold uppercase">Коллекция скоро появится</p>
+                        <p class="mt-3 text-xs text-steelGray font-light">Мы готовим новые изделия. Загляните сюда чуть позже.</p>
+                    </div>
+                {% endfor %}
+            </div>
+            <p id="collection-empty-filter" class="hidden mt-8 text-center text-xs text-steelGray">В этой категории пока нет изделий.</p>
+        </section>
+    </main>
+
+    <footer class="border-t border-surfaceBorder bg-surface/40">
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[9px] tracking-[0.18em] uppercase text-steelGray">
+            <a href="{% url 'home' %}" class="font-header text-lg font-black tracking-[0.3em] text-white">STATUS</a>
+            <span>Бесшумное превосходство</span>
+            <a href="{% url 'home' %}#concierge" class="hover:text-white transition-colors">Персональный сервис</a>
+        </div>
+    </footer>
+
+    <script>
+        const menuButton = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        menuButton.addEventListener('click', () => {
+            const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
+            menuButton.setAttribute('aria-expanded', String(!isExpanded));
+            mobileMenu.classList.toggle('hidden', isExpanded);
+        });
+
+        const filters = document.querySelectorAll('.collection-filter');
+        const productCards = document.querySelectorAll('#collection-grid [data-category]');
+        const emptyFilterMessage = document.getElementById('collection-empty-filter');
+
+        filters.forEach((button) => {
+            button.addEventListener('click', () => {
+                const category = button.dataset.filter;
+                let visibleCount = 0;
+
+                filters.forEach((filter) => {
+                    const isActive = filter === button;
+                    filter.setAttribute('aria-pressed', String(isActive));
+                    filter.classList.toggle('bg-surface', isActive);
+                    filter.classList.toggle('text-white', isActive);
+                    filter.classList.toggle('border-surfaceBorder', isActive);
+                    filter.classList.toggle('text-steelGray', !isActive);
+                    filter.classList.toggle('border-transparent', !isActive);
+                });
+
+                productCards.forEach((card) => {
+                    const isVisible = category === 'all' || card.dataset.category === category;
+                    card.classList.toggle('hidden', !isVisible);
+                    if (isVisible) visibleCount += 1;
+                });
+
+                emptyFilterMessage.classList.toggle('hidden', visibleCount > 0);
+            });
+        });
+    </script>
+</body>
+</html>

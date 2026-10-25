@@ -21,12 +21,24 @@ from django.urls import path
 from PRILOJENIA1 import views
 
 urlpatterns = [
+    path('accounts/login/', views.CustomerLoginView.as_view(), name='login'),
+    path('accounts/register/', views.customer_register, name='register'),
+    path('accounts/logout/', views.customer_logout, name='logout'),
+    path('accounts/profile/', views.customer_profile, name='customer_profile'),
+    path(
+        'accounts/phone-verification-status/',
+        views.phone_verification_status,
+        name='phone_verification_status',
+    ),
+    path('orders/create/', views.create_order, name='create_order'),
+    path('telegram/webhook/', views.telegram_webhook, name='telegram_webhook'),
     path(
         'admin/profile/',
         admin.site.admin_view(views.admin_profile),
         name='admin_profile',
     ),
     path('admin/', admin.site.urls),
+    path('collection/', views.collection, name='collection'),
     path('', views.glavnaia_stranisa, name='home'),
 ]
 

@@ -1,4 +1,11 @@
+import uuid
+
+from django.conf import settings
 from django.db import models
+
+
+def generate_phone_verification_token():
+    return uuid.uuid4().hex
 
 
 class Product(models.Model):
@@ -52,3 +59,121 @@ class ProductSize(models.Model):
 
     def __str__(self):
         return f"{self.size}: {self.quantity}"
+
+
+class CustomerProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="customer_profile",
+        verbose_name="Пользователь",
+    )
+    phone = models.CharField("Телефон", max_length=30)
+    phone_verified = models.BooleanField("Телефон подтверждён", default=False)
+
+    class Meta:
+        verbose_name = "профиль покупателя"
+        verbose_name_plural = "профили покупателей"
+
+    def __str__(self):
+        return f"{self.user.get_full_name() or self.user.username} — {self.phone}"
+
+
+class PendingPhoneRegistration(models.Model):
+    token = models.CharField(
+        "Токен подтверждения",
+        max_length=64,
+        primary_key=True,
+        default=generate_phone_verification_token,
+        editable=False,
+    )
+    phone = models.CharField("Телефон", max_length=30, unique=True)
+    first_name = models.CharField("Имя и фамилия", max_length=150)
+    password_hash = models.CharField("Хеш пароля", max_length=128)
+    created_at = models.DateTimeField("Создана", auto_now_add=True)
+    expires_at = models.DateTimeField("Срок действия")
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="pending_phone_registration",
+        null=True,
+        blank=True,
+        verbose_name="Созданный пользователь",
+    )
+    target_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="phone_verifications",
+        null=True,
+        blank=True,
+        verbose_name="Существующий пользователь",
+    )
+
+    class Meta:
+        verbose_name = "ожидающая регистрация"
+        verbose_name_plural = "ожидающие регистрации"
+
+    def __str__(self):
+        return f"{self.phone} — {'Подтверждён' if self.user_id else 'Ожидает подтверждения'}"
+
+
+class Order(models.Model):
+    class Status(models.TextChoices):
+        NEW = "new", "Новый"
+        PROCESSING = "processing", "В обработке"
+        COMPLETED = "completed", "Выполнен"
+        CANCELLED = "cancelled", "Отменён"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="orders",
+        verbose_name="Покупатель",
+    )
+    customer_name = models.CharField("Имя покупателя", max_length=150)
+    customer_phone = models.CharField("Телефон", max_length=30)
+    delivery_address = models.CharField("Адрес доставки", max_length=250)
+    total_price = models.PositiveIntegerField("Сумма заказа")
+    status = models.CharField(
+        "Статус",
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NEW,
+    )
+    created_at = models.DateTimeField("Создан", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "заказ"
+        verbose_name_plural = "заказы"
+
+    def __str__(self):
+        return f"Заказ №{self.pk} — {self.customer_name}"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="items",
+        verbose_name="Заказ",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="order_items",
+        verbose_name="Товар",
+    )
+    product_name = models.CharField("Название товара", max_length=200)
+    quantity = models.PositiveIntegerField("Количество")
+    sizes = models.CharField("Размеры", max_length=200, blank=True)
+    unit_price = models.PositiveIntegerField("Цена за единицу")
+
+    class Meta:
+        verbose_name = "позиция заказа"
+        verbose_name_plural = "позиции заказа"
+
+    def __str__(self):
+        return f"{self.product_name} × {self.quantity}"

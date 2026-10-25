@@ -122,13 +122,19 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
 USE_TZ = True
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "").lstrip("@")
+TELEGRAM_WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
 
 
 # Static files (CSS, JavaScript, Images)
@@ -146,6 +152,17 @@ STORAGES = {
 }
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+def _product_list_is_active(request):
+    product_path = "/admin/PRILOJENIA1/product/"
+    add_path = f"{product_path}add/"
+    return request.path.startswith(product_path) and not request.path.startswith(add_path)
+
+
+def _product_add_is_active(request):
+    return request.path == "/admin/PRILOJENIA1/product/add/"
+
 
 UNFOLD = {
     "SITE_TITLE": "STATUS | Администрирование",
@@ -185,9 +202,26 @@ UNFOLD = {
                         "link": "/admin/",
                     },
                     {
-                        "title": "Товары и остатки",
+                        "title": "Список товаров",
                         "icon": "inventory_2",
                         "link": "/admin/PRILOJENIA1/product/",
+                        "active": _product_list_is_active,
+                    },
+                    {
+                        "title": "Добавить товар",
+                        "icon": "add_box",
+                        "link": "/admin/PRILOJENIA1/product/add/",
+                        "active": _product_add_is_active,
+                    },
+                    {
+                        "title": "Пользователи",
+                        "icon": "group",
+                        "link": "/admin/auth/user/",
+                    },
+                    {
+                        "title": "Заказы",
+                        "icon": "receipt_long",
+                        "link": "/admin/PRILOJENIA1/order/",
                     },
                 ],
             },

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru" class="scroll-smooth">
 <head>
@@ -176,19 +177,21 @@
                 <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">ОФОРМЛЕНИЕ ЗАКАЗА</span>
                 <h3 class="font-header text-xl text-white font-extrabold uppercase tracking-wider">ПЕРСОНАЛЬНЫЙ СЕРВИС</h3>
             </div>
-            <form onsubmit="event.preventDefault(); processCheckout();" class="space-y-4 text-xs">
-                <div>
-                    <label class="block text-steelGray uppercase tracking-widest mb-2 text-[10px] font-semibold">ФАМИЛИЯ И ИМЯ</label>
-                    <input type="text" required class="w-full bg-surface border border-surfaceBorder p-3 text-white focus:outline-none focus:border-deepBurgundy">
-                </div>
-                <div>
-                    <label class="block text-steelGray uppercase tracking-widest mb-2 text-[10px] font-semibold">КОНТАКТНЫЙ ТЕЛЕФОН</label>
-                    <input type="tel" required placeholder="+996 (___) __-__-__" class="w-full bg-surface border border-surfaceBorder p-3 text-white focus:outline-none focus:border-deepBurgundy">
+            <form id="checkout-form" onsubmit="event.preventDefault(); processCheckout();" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <div class="border border-surfaceBorder bg-surface p-3 text-steelGray">
+                    <p class="text-[10px] uppercase tracking-widest">ПОЛУЧАТЕЛЬ</p>
+                    <p class="mt-2 text-white">{{ customer_name }}</p>
+                    <p class="mt-1">{{ customer_profile.phone|default:"Добавьте телефон в профиле" }}</p>
+                    {% if not customer_profile.phone %}
+                        <a href="{% url 'customer_profile' %}" class="mt-2 inline-block text-[#b83b4b] hover:text-white">Заполнить профиль</a>
+                    {% endif %}
                 </div>
                 <div>
                     <label class="block text-steelGray uppercase tracking-widest mb-2 text-[10px] font-semibold">АДРЕС ДОСТАВКИ</label>
-                    <input type="text" required value="г. Бишкек" class="w-full bg-surface border border-surfaceBorder p-3 text-white focus:outline-none focus:border-deepBurgundy">
+                    <input id="checkout-address" type="text" required maxlength="250" value="г. Бишкек" class="w-full bg-surface border border-surfaceBorder p-3 text-white focus:outline-none focus:border-deepBurgundy">
                 </div>
+                <p id="checkout-error" role="alert" class="hidden text-red-400"></p>
                 <button type="submit" class="w-full py-4 bg-deepBurgundy hover:bg-deepBurgundy-hover text-white text-xs font-bold uppercase tracking-[0.25em] transition-all mt-4">
                     ПОДТВЕРДИТЬ И ВЫЗВАТЬ КУРЬЕРА
                 </button>
@@ -200,18 +203,23 @@
     <header class="fixed top-0 left-0 w-full z-40 bg-obsidian/95 border-b border-surfaceBorder backdrop-blur-md">
         <div class="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
             <!-- Brand Logo -->
-            <a href="#" class="flex flex-col">
-                <span class="font-header text-2xl md:text-3xl font-black tracking-[0.4em] text-white uppercase">STATUS</span>
-                <span class="text-[8px] tracking-[0.6em] text-steelGray font-semibold uppercase -mt-1">HAUTE COUTURE</span>
-            </a>
+            <div class="flex items-center gap-3 sm:gap-6">
+                <a href="#" class="flex flex-col">
+                    <span class="font-header text-2xl md:text-3xl font-black tracking-[0.4em] text-white uppercase">STATUS</span>
+                    <span class="text-[8px] tracking-[0.6em] text-steelGray font-semibold uppercase -mt-1">HAUTE COUTURE</span>
+                </a>
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'customer_profile' %}" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
+                {% else %}
+                    <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
+                {% endif %}
+            </div>
 
             <!-- Navigation Links -->
             <nav class="hidden md:flex items-center space-x-10 text-[11px] tracking-[0.25em] font-semibold uppercase text-steelGray">
-                <a href="#home" class="hover:text-white transition-colors">ГЛАВНАЯ</a>
+                <a href="#home" aria-current="page" class="text-[#b83b4b] hover:text-white transition-colors">ГЛАВНАЯ</a>
                 <a href="#catalog" class="hover:text-white transition-colors">КОЛЛЕКЦИЯ</a>
                 <a href="#lookbook" class="hover:text-white transition-colors">КАПСУЛА</a>
-                <a href="#philosophy" class="hover:text-white transition-colors">ФИЛОСОФИЯ</a>
-                <a href="#concierge" class="hover:text-white transition-colors">КОНСЬЕРЖ</a>
             </nav>
 
             <!-- Currency & Actions -->
@@ -241,11 +249,9 @@
         <!-- Mobile Navigation Menu -->
         <div id="mobile-menu" class="hidden md:hidden bg-obsidian border-b border-surfaceBorder px-6 py-6">
             <div class="flex flex-col space-y-4 text-center font-header text-xs tracking-[0.25em] uppercase font-bold text-steelGray">
-                <a href="#home" class="hover:text-white py-2">ГЛАВНАЯ</a>
+                <a href="#home" aria-current="page" class="text-[#b83b4b] hover:text-white py-2">ГЛАВНАЯ</a>
                 <a href="#catalog" class="hover:text-white py-2">КОЛЛЕКЦИЯ</a>
                 <a href="#lookbook" class="hover:text-white py-2">КАПСУЛА</a>
-                <a href="#philosophy" class="hover:text-white py-2">ФИЛОСОФИЯ</a>
-                <a href="#concierge" class="hover:text-white py-2">КОНСЬЕРЖ</a>
             </div>
         </div>
     </header>
@@ -257,7 +263,7 @@
             <!-- Hero Text Content -->
             <div class="lg:col-span-6 space-y-8 text-left order-2 lg:order-1">
                 <div class="inline-flex items-center space-x-3 border-b-2 border-deepBurgundy pb-1">
-                    <span class="text-[10px] tracking-[0.4em] uppercase text-white font-bold">КОЛЛЕКЦИЯ 2026 / LIMITED EDITION</span>
+                    <span class="text-[10px] tracking-[0.4em] uppercase text-white font-bold">STATUS</span>
                 </div>
 
                 <h1 class="font-header text-4xl sm:text-6xl xl:text-7xl font-black leading-[1.05] tracking-tight text-white uppercase">
@@ -280,18 +286,17 @@
                 </div>
             </div>
 
-            <!-- ФОТО МОДЕЛИ: замени images/model.jpg на путь к своему фото -->
             <div class="lg:col-span-6 flex justify-center order-1 lg:order-2">
                 <div class="relative w-full max-w-md aspect-[3/4] bg-surface border border-surfaceBorder p-4 flex items-center justify-center overflow-hidden">
                     <img
                         id="hero-photo"
-                        src="images/model.jpg"
+                        src="{% get_static_prefix %}PRILOJENIA1/logo/log.png"
                         alt="Модель в одежде STATUS"
                         class="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] object-cover"
                     >
 
                     <!-- Карточка поверх фотографии -->
-                    <div class="absolute bottom-6 left-6 right-6 bg-obsidian/95 border border-surfaceBorder p-4 flex justify-between items-center">
+                    <div class="absolute bottom-6 right-6 max-w-[calc(100%-3rem)] bg-obsidian/95 border border-surfaceBorder p-4 text-right">
                         <div>
                             <p class="text-[9px] font-bold tracking-[0.2em] text-deepBurgundy uppercase">
                                 STATUS
@@ -308,8 +313,8 @@
     </section>
 
     <!-- PRODUCT CATALOG -->
-    <section id="catalog" class="py-28 px-6 lg:px-12 max-w-7xl mx-auto border-b border-surfaceBorder">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
+    <section id="catalog" class="py-16 sm:py-20 lg:py-28 px-3 sm:px-6 lg:px-12 max-w-7xl mx-auto border-b border-surfaceBorder">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-16 gap-6">
             <div class="space-y-3">
                 <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">КАТАЛОГ ИЗДЕЛИЙ</span>
                 <h2 class="font-header text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">КОЛЛЕКЦИЯ «НАСЛЕДИЕ»</h2>
@@ -327,7 +332,7 @@
         </div>
 
         <!-- Dynamic Product Grid -->
-        <div id="product-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div id="product-grid" class="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-8">
             <!-- Populated via Javascript -->
         </div>
     </section>
@@ -408,7 +413,7 @@
             </div>
 
             <div class="space-y-3">
-                <p class="text-white font-bold uppercase tracking-widest text-[10px]">ФЛАГМАНСКИЕ ЛОКАЦИИ</p>
+                <p class="text-white font-bold uppercase tracking-widest text-[10px]">ЛОКАЦИИ</p>
                 <p>г. Бишкек: Бутик STATUS, ул. Токтогула</p>
                 <p>г. Милан: Via Montenapoleone 8</p>
                 <p>г. Дубай: DIFC Gate Precinct</p>
@@ -419,16 +424,6 @@
                 <p><a href="#" class="hover:text-white transition-colors">Выездной портной</a></p>
                 <p><a href="#" class="hover:text-white transition-colors">Курьерская примерка</a></p>
                 <p><a href="#" class="hover:text-white transition-colors">Закрытый клуб клиентов</a></p>
-            </div>
-
-            <div class="space-y-4">
-                <p class="text-white font-bold uppercase tracking-widest text-[10px]">ЗАКРЫТАЯ РАССЫЛКА</p>
-                <form onsubmit="event.preventDefault(); showToast('ПОДПИСКА ОФОРМЛЕНА', 'ВЫ ВНЕСЕНЫ В ЗАКРЫТЫЙ СПИСОК');" class="flex">
-                    <input type="email" required placeholder="Ваш Email" class="bg-surface border border-surfaceBorder p-3 text-white focus:outline-none focus:border-deepBurgundy text-xs flex-1">
-                    <button type="submit" class="bg-deepBurgundy hover:bg-deepBurgundy-hover text-white px-5">
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </form>
             </div>
 
         </div>
@@ -452,8 +447,34 @@
         let currentCurrency = 'KGS';
 
         const products = JSON.parse(document.getElementById('products-data').textContent);
-
+        const cartStorageKey = 'status-cart';
+        const isAuthenticated = {{ request.user.is_authenticated|yesno:"true,false" }};
         let cart = [];
+        try {
+            const savedCart = JSON.parse(localStorage.getItem(cartStorageKey) || '[]');
+            cart = savedCart
+                .map(savedItem => {
+                    const product = products.find(item => item.id === savedItem.id);
+                    const quantity = Number(savedItem.quantity);
+                    return product && Number.isInteger(quantity) && quantity > 0
+                        ? { product, quantity: Math.min(quantity, product.totalStock) }
+                        : null;
+                })
+                .filter(item => item && item.quantity > 0);
+        } catch (error) {
+            console.warn('Не удалось восстановить корзину:', error);
+            localStorage.removeItem(cartStorageKey);
+        }
+
+        function saveCart() {
+            localStorage.setItem(
+                cartStorageKey,
+                JSON.stringify(cart.map(item => ({
+                    id: item.product.id,
+                    quantity: item.quantity,
+                }))),
+            );
+        }
 
         // Price Formatter Helper
         function formatPrice(amountKGS) {
@@ -485,19 +506,19 @@
                 return;
             }
             container.innerHTML = items.map(p => `
-                <div class="bg-surface border border-surfaceBorder p-6 flex flex-col justify-between group fade-in">
-                    <div class="aspect-[4/5] bg-obsidian border border-surfaceBorder/50 mb-6 relative overflow-hidden flex items-center justify-center p-6 cursor-pointer" onclick="openQuickView(${p.id})">
+                <div class="bg-surface border border-surfaceBorder p-2 sm:p-4 lg:p-6 flex flex-col justify-between group fade-in">
+                    <div class="aspect-[4/5] bg-obsidian border border-surfaceBorder/50 mb-3 sm:mb-4 lg:mb-6 relative overflow-hidden flex items-center justify-center p-0 sm:p-3 lg:p-6 cursor-pointer" onclick="openQuickView(${p.id})">
                         <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
                     </div>
-                    <div class="space-y-2">
-                        <span class="text-[9px] uppercase tracking-[0.2em] text-deepBurgundy font-bold">${escapeHtml(p.categoryLabel)}</span>
-                        <h3 class="font-header text-base text-white font-bold uppercase cursor-pointer hover:text-deepBurgundy transition-colors" onclick="openQuickView(${p.id})">${escapeHtml(p.name)}</h3>
-                        <p class="text-xs text-steelGray font-light line-clamp-2 leading-relaxed">${escapeHtml(p.desc)}</p>
-                        <p class="text-[10px] text-steelGray">Размеры: ${p.sizes.length ? p.sizes.map(item => `${escapeHtml(item.size)} (${item.quantity} шт.)`).join(', ') : 'не указаны'}</p>
-                        <p class="text-[10px] text-steelGray">Остаток: ${p.totalStock} шт.</p>
-                        <div class="pt-4 flex justify-between items-center border-t border-surfaceBorder/50 mt-4">
-                            <span class="font-header text-sm text-white font-bold">${formatPrice(p.priceKGS)}</span>
-                            <button onclick="addToCart(${p.id})" ${p.totalStock ? '' : 'disabled'} class="px-4 py-2 bg-surfaceBorder hover:bg-deepBurgundy hover:text-white text-[10px] font-bold text-white transition-all uppercase tracking-wider ${p.totalStock ? '' : 'cursor-not-allowed opacity-50'}">
+                    <div class="space-y-1 sm:space-y-2">
+                        <span class="text-[7px] sm:text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.2em] text-deepBurgundy font-bold">${escapeHtml(p.categoryLabel)}</span>
+                        <h3 class="font-header text-[10px] sm:text-sm lg:text-base text-white font-bold uppercase leading-tight line-clamp-2 cursor-pointer hover:text-deepBurgundy transition-colors" onclick="openQuickView(${p.id})">${escapeHtml(p.name)}</h3>
+                        <p class="text-[8px] sm:text-xs text-steelGray font-light line-clamp-2 leading-relaxed">${escapeHtml(p.desc)}</p>
+                        <p class="text-[8px] sm:text-[10px] text-steelGray leading-tight">Размеры: ${p.sizes.length ? p.sizes.map(item => `${escapeHtml(item.size)} (${item.quantity} шт.)`).join(', ') : 'не указаны'}</p>
+                        <p class="text-[8px] sm:text-[10px] text-steelGray">Остаток: ${p.totalStock} шт.</p>
+                        <div class="pt-2 sm:pt-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 border-t border-surfaceBorder/50 mt-2 sm:mt-4">
+                            <span class="font-header text-[10px] sm:text-sm text-white font-bold text-center sm:text-left">${formatPrice(p.priceKGS)}</span>
+                            <button onclick="addToCart(${p.id})" ${p.totalStock ? '' : 'disabled'} class="w-full sm:w-auto px-1 sm:px-4 py-2 bg-surfaceBorder hover:bg-deepBurgundy hover:text-white text-[7px] sm:text-[10px] font-bold text-white transition-all uppercase tracking-[0.05em] sm:tracking-wider ${p.totalStock ? '' : 'cursor-not-allowed opacity-50'}">
                                 ${p.totalStock ? 'В КОРЗИНУ' : 'НЕТ В НАЛИЧИИ'}
                             </button>
                         </div>
@@ -598,6 +619,7 @@
                 } else {
                     cart.push({ product, quantity: 1 });
                 }
+                saveCart();
                 updateCartUI();
                 showToast("ДОБАВЛЕНО В КОРЗИНУ", product.name.toUpperCase());
             }
@@ -614,6 +636,7 @@
                 if(item.quantity <= 0) {
                     cart = cart.filter(i => i.product.id !== id);
                 }
+                saveCart();
                 updateCartUI();
             }
         }
@@ -745,7 +768,13 @@
                 showToast("КОРЗИНА ПУСТА", "ВЫБЕРИТЕ ХОТЯ БЫ ОДНО ИЗДЕЛИЕ");
                 return;
             }
+            saveCart();
+            if(!isAuthenticated) {
+                window.location.href = "{% url 'login' %}?next=" + encodeURIComponent("/?checkout=1");
+                return;
+            }
             toggleCartDrawer(false);
+            document.getElementById('checkout-error').classList.add('hidden');
             document.getElementById('checkout-modal').classList.remove('hidden');
         }
 
@@ -753,11 +782,48 @@
             document.getElementById('checkout-modal').classList.add('hidden');
         }
 
-        function processCheckout() {
-            closeCheckoutModal();
-            cart = [];
-            updateCartUI();
-            showToast("ЗАКАЗ ОФОРМЛЕН", "ПЕРСОНАЛЬНЫЙ МЕНЕДЖЕР СВЯЖЕТСЯ С ВАМИ.");
+        async function processCheckout() {
+            const form = document.getElementById('checkout-form');
+            const errorMessage = document.getElementById('checkout-error');
+            const submitButton = form.querySelector('button[type="submit"]');
+            errorMessage.classList.add('hidden');
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch("{% url 'create_order' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': form.querySelector('[name="csrfmiddlewaretoken"]').value,
+                    },
+                    body: JSON.stringify({
+                        address: document.getElementById('checkout-address').value,
+                        items: cart.map(item => ({
+                            id: item.product.id,
+                            quantity: item.quantity,
+                        })),
+                    }),
+                });
+                if(response.redirected && response.url.includes("{% url 'login' %}")) {
+                    window.location.href = "{% url 'login' %}?next=" + encodeURIComponent("/?checkout=1");
+                    return;
+                }
+                const result = await response.json();
+                if(!response.ok) {
+                    throw new Error(result.error || 'Не удалось оформить заказ.');
+                }
+
+                closeCheckoutModal();
+                cart = [];
+                saveCart();
+                updateCartUI();
+                showToast("ЗАКАЗ ОФОРМЛЕН", result.message);
+            } catch (error) {
+                errorMessage.innerText = error.message || 'Ошибка при отправке заказа. Попробуйте ещё раз.';
+                errorMessage.classList.remove('hidden');
+            } finally {
+                submitButton.disabled = false;
+            }
         }
 
         // Toast Helper Function
@@ -782,6 +848,10 @@
             renderProducts(products);
             renderLookbook();
             updateLookbook();
+            updateCartUI();
+            if(new URLSearchParams(window.location.search).get('checkout') === '1' && isAuthenticated && cart.length) {
+                document.getElementById('checkout-modal').classList.remove('hidden');
+            }
         }
     </script>
 </body>
