@@ -69,7 +69,6 @@ class CustomerProfile(models.Model):
         verbose_name="Пользователь",
     )
     phone = models.CharField("Телефон", max_length=30)
-    phone_verified = models.BooleanField("Телефон подтверждён", default=False)
 
     class Meta:
         verbose_name = "профиль покупателя"
@@ -77,44 +76,6 @@ class CustomerProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} — {self.phone}"
-
-
-class PendingPhoneRegistration(models.Model):
-    token = models.CharField(
-        "Токен подтверждения",
-        max_length=64,
-        primary_key=True,
-        default=generate_phone_verification_token,
-        editable=False,
-    )
-    phone = models.CharField("Телефон", max_length=30, unique=True)
-    first_name = models.CharField("Имя и фамилия", max_length=150)
-    password_hash = models.CharField("Хеш пароля", max_length=128)
-    created_at = models.DateTimeField("Создана", auto_now_add=True)
-    expires_at = models.DateTimeField("Срок действия")
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="pending_phone_registration",
-        null=True,
-        blank=True,
-        verbose_name="Созданный пользователь",
-    )
-    target_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="phone_verifications",
-        null=True,
-        blank=True,
-        verbose_name="Существующий пользователь",
-    )
-
-    class Meta:
-        verbose_name = "ожидающая регистрация"
-        verbose_name_plural = "ожидающие регистрации"
-
-    def __str__(self):
-        return f"{self.phone} — {'Подтверждён' if self.user_id else 'Ожидает подтверждения'}"
 
 
 class Order(models.Model):

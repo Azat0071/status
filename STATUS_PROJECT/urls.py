@@ -25,13 +25,7 @@ urlpatterns = [
     path('accounts/register/', views.customer_register, name='register'),
     path('accounts/logout/', views.customer_logout, name='logout'),
     path('accounts/profile/', views.customer_profile, name='customer_profile'),
-    path(
-        'accounts/phone-verification-status/',
-        views.phone_verification_status,
-        name='phone_verification_status',
-    ),
     path('orders/create/', views.create_order, name='create_order'),
-    path('telegram/webhook/', views.telegram_webhook, name='telegram_webhook'),
     path(
         'admin/profile/',
         admin.site.admin_view(views.admin_profile),

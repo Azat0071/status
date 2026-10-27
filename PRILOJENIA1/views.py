@@ -1,24 +1,17 @@
 import json
-import secrets
-from datetime import timedelta
 from json import JSONDecodeError
 
 from django.contrib import admin, messages
-from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout, update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
-from django.contrib.auth.hashers import make_password
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.urls import reverse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_POST
 
 from .forms import (
     AdminProfileForm,
@@ -30,12 +23,9 @@ from .models import (
     CustomerProfile,
     Order,
     OrderItem,
-    PendingPhoneRegistration,
     Product,
     ProductSize,
 )
-from .phone import normalize_phone
-from .telegram_bot import send_bot_message, send_contact_request
 
 
 def _available_products():
@@ -68,12 +58,18 @@ def glavnaia_stranisa(request):
         if request.user.is_authenticated
         else None
     )
+    customer_orders = (
+        request.user.orders.prefetch_related("items").all()
+        if request.user.is_authenticated
+        else ()
+    )
     return render(
         request,
         "glavnaia_stranisa.html",
         {
             "products": product_data,
             "customer_profile": customer_profile,
+            "customer_orders": customer_orders,
             "customer_name": (
                 request.user.get_full_name() or request.user.username
                 if request.user.is_authenticated
@@ -98,59 +94,28 @@ def customer_register(request):
         return redirect("customer_profile")
     form = CustomerRegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if not (
-            settings.TELEGRAM_BOT_TOKEN
-            and settings.TELEGRAM_BOT_USERNAME
-            and settings.TELEGRAM_WEBHOOK_SECRET
+        safe_next = request.POST.get("next", "")
+        if not url_has_allowed_host_and_scheme(
+            safe_next,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
         ):
-            form.add_error(
-                None,
-                "Подтверждение пока не настроено. Администратору нужно подключить Telegram-бота.",
-            )
-        else:
-            phone = form.cleaned_data["phone"]
-            now = timezone.now()
-            PendingPhoneRegistration.objects.filter(expires_at__lte=now).delete()
-            existing_pending = PendingPhoneRegistration.objects.filter(
-                phone=phone,
-                expires_at__gt=now,
-                user__isnull=True,
-            ).first()
-            if existing_pending:
-                form.add_error(
-                    "phone",
-                    "Для этого номера уже ожидается подтверждение. Откройте прежнюю ссылку Telegram или попробуйте через 10 минут.",
-                )
-            else:
-                safe_next = request.POST.get("next", "")
-                if not url_has_allowed_host_and_scheme(
-                    safe_next,
-                    allowed_hosts={request.get_host()},
-                    require_https=request.is_secure(),
-                ):
-                    safe_next = ""
-                pending = PendingPhoneRegistration.objects.create(
-                    phone=phone,
+            safe_next = ""
+        phone = form.cleaned_data["phone"]
+        try:
+            with transaction.atomic():
+                user = get_user_model().objects.create_user(
+                    username=phone,
                     first_name=form.cleaned_data["first_name"].strip(),
-                    password_hash=make_password(form.cleaned_data["password1"]),
-                    expires_at=now + timedelta(minutes=10),
-                    target_user=form.existing_user,
+                    email="",
+                    password=form.cleaned_data["password1"],
                 )
-                request.session["phone_registration_token"] = pending.token
-                request.session["phone_registration_next"] = safe_next
-                return render(
-                    request,
-                    "account.html",
-                    {
-                        "mode": "telegram_pending",
-                        "title": "Подтвердите номер",
-                        "telegram_url": (
-                            f"https://t.me/{settings.TELEGRAM_BOT_USERNAME}"
-                            f"?start={pending.token}"
-                        ),
-                        "verification_status_url": reverse("phone_verification_status"),
-                    },
-                )
+                CustomerProfile.objects.create(user=user, phone=phone)
+        except IntegrityError:
+            form.add_error("phone", "Этот номер уже зарегистрирован. Войдите в аккаунт.")
+        else:
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            return redirect(safe_next or reverse("customer_profile"))
     return render(
         request,
         "account.html",
@@ -195,151 +160,6 @@ def customer_logout(request):
     return redirect("home")
 
 
-@require_GET
-def phone_verification_status(request):
-    token = request.session.get("phone_registration_token")
-    if not token:
-        return JsonResponse({"status": "missing"}, status=400)
-    pending = PendingPhoneRegistration.objects.select_related("user").filter(
-        token=token
-    ).first()
-    if pending is None or pending.expires_at <= timezone.now():
-        request.session.pop("phone_registration_token", None)
-        request.session.pop("phone_registration_next", None)
-        return JsonResponse({"status": "expired"})
-    if pending.user_id is None:
-        return JsonResponse({"status": "pending"})
-
-    next_url = request.session.pop("phone_registration_next", "")
-    request.session.pop("phone_registration_token", None)
-    login(request, pending.user, backend="django.contrib.auth.backends.ModelBackend")
-    pending.delete()
-    if not url_has_allowed_host_and_scheme(
-        next_url,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
-        next_url = reverse("customer_profile")
-    return JsonResponse({"status": "verified", "redirect_url": next_url})
-
-
-@csrf_exempt
-@require_POST
-def telegram_webhook(request):
-    configured_secret = settings.TELEGRAM_WEBHOOK_SECRET
-    received_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
-    if not configured_secret or not secrets.compare_digest(
-        configured_secret,
-        received_secret,
-    ):
-        return JsonResponse({"error": "Недействительный секрет вебхука."}, status=403)
-
-    try:
-        update = json.loads(request.body)
-    except (JSONDecodeError, UnicodeDecodeError):
-        return JsonResponse({"error": "Некорректный JSON."}, status=400)
-    if not isinstance(update, dict):
-        return JsonResponse({"error": "Некорректное событие Telegram."}, status=400)
-
-    message = update.get("message")
-    if not isinstance(message, dict):
-        return JsonResponse({"ok": True})
-    chat = message.get("chat")
-    sender = message.get("from")
-    if not isinstance(chat, dict) or not isinstance(sender, dict):
-        return JsonResponse({"ok": True})
-    if chat.get("type") != "private" or not isinstance(sender.get("id"), int):
-        return JsonResponse({"ok": True})
-    chat_id = chat.get("id")
-    text = message.get("text", "")
-    contact = message.get("contact")
-
-    if isinstance(text, str) and text.startswith("/start"):
-        parts = text.split(maxsplit=1)
-        if len(parts) != 2:
-            send_bot_message(chat_id, "Откройте бота по ссылке со страницы регистрации STATUS.")
-            return JsonResponse({"ok": True})
-        pending = PendingPhoneRegistration.objects.filter(
-            token=parts[1],
-            user__isnull=True,
-            expires_at__gt=timezone.now(),
-        ).first()
-        if pending is None:
-            send_bot_message(chat_id, "Ссылка подтверждения истекла. Вернитесь на сайт и начните регистрацию заново.")
-            return JsonResponse({"ok": True})
-        send_contact_request(chat_id)
-        return JsonResponse({"ok": True})
-
-    if not isinstance(contact, dict):
-        return JsonResponse({"ok": True})
-    if contact.get("user_id") != sender["id"]:
-        send_bot_message(chat_id, "Пожалуйста, используйте кнопку «Подтвердить мой номер» и отправьте свой контакт.")
-        return JsonResponse({"ok": True})
-
-    try:
-        contact_phone = normalize_phone(contact.get("phone_number", ""))
-    except (ValidationError, AttributeError):
-        send_bot_message(chat_id, "Не удалось распознать номер. На сайте укажите номер в международном формате.")
-        return JsonResponse({"ok": True})
-
-    try:
-        with transaction.atomic():
-            pending = PendingPhoneRegistration.objects.select_for_update().filter(
-                phone=contact_phone,
-                user__isnull=True,
-                expires_at__gt=timezone.now(),
-            ).first()
-            if pending is None:
-                send_bot_message(chat_id, "Для этого номера нет ожидающей регистрации. Вернитесь на сайт и начните заново.")
-                return JsonResponse({"ok": True})
-
-            User = get_user_model()
-            existing_profile = CustomerProfile.objects.select_for_update().filter(
-                phone=contact_phone
-            ).exclude(user=pending.target_user).first()
-            existing_username = User.objects.filter(
-                username=contact_phone
-            ).exclude(pk=pending.target_user_id).exists()
-            if existing_profile or existing_username:
-                send_bot_message(chat_id, "Этот номер уже зарегистрирован. Войдите в свой аккаунт.")
-                pending.delete()
-                return JsonResponse({"ok": True})
-
-            if pending.target_user_id:
-                user = User.objects.select_for_update().get(pk=pending.target_user_id)
-                user.username = contact_phone
-                user.first_name = pending.first_name
-                user.email = ""
-                user.password = pending.password_hash
-                user.save(update_fields=("username", "first_name", "email", "password"))
-                profile = CustomerProfile.objects.select_for_update().get(user=user)
-                profile.phone = contact_phone
-                profile.phone_verified = True
-                profile.save(update_fields=("phone", "phone_verified"))
-            else:
-                user = User(
-                    username=contact_phone,
-                    first_name=pending.first_name,
-                    email="",
-                    password=pending.password_hash,
-                )
-                user.save(force_insert=True)
-                CustomerProfile.objects.create(
-                    user=user,
-                    phone=contact_phone,
-                    phone_verified=True,
-                )
-            pending.user = user
-            pending.password_hash = ""
-            pending.save(update_fields=("user", "password_hash"))
-    except IntegrityError:
-        send_bot_message(chat_id, "Не удалось создать аккаунт. Проверьте номер и начните регистрацию заново.")
-        return JsonResponse({"ok": True})
-
-    send_bot_message(chat_id, "Номер подтверждён. Возвращайтесь на сайт STATUS — вы войдёте автоматически.")
-    return JsonResponse({"ok": True})
-
-
 @login_required
 @require_POST
 def create_order(request):
@@ -378,12 +198,11 @@ def create_order(request):
     profile = CustomerProfile.objects.filter(user=request.user).first()
     if (
         profile is None
-        or not profile.phone_verified
         or not request.user.first_name.strip()
         or not profile.phone.strip()
     ):
         return JsonResponse(
-            {"error": "Подтвердите номер телефона и заполните имя в профиле перед заказом."},
+            {"error": "Заполните имя и телефон в профиле перед заказом."},
             status=400,
         )
 

@@ -86,7 +86,6 @@ class StatusUserAdmin(UserAdmin):
         "username",
         "first_name",
         "phone_number",
-        "phone_verified_status",
         "email",
         "is_online",
         "is_active",
@@ -117,11 +116,6 @@ class StatusUserAdmin(UserAdmin):
     def phone_number(self, user):
         profile = getattr(user, "customer_profile", None)
         return profile.phone if profile else "—"
-
-    @admin.display(boolean=True, description="Телефон подтверждён")
-    def phone_verified_status(self, user):
-        profile = getattr(user, "customer_profile", None)
-        return profile.phone_verified if profile else False
 
     @admin.action(description="Заблокировать выбранных пользователей")
     def block_users(self, request, queryset):

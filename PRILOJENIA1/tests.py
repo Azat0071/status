@@ -16,7 +16,6 @@ from .models import (
     CustomerProfile,
     Order,
     OrderItem,
-    PendingPhoneRegistration,
     Product,
     ProductSize,
 )
@@ -294,16 +293,12 @@ class AdminUserManagementTests(TestCase):
         self.assertFalse(Session.objects.filter(session_key=session_key).exists())
 
 
-@override_settings(
-    TELEGRAM_BOT_TOKEN="test-token",
-    TELEGRAM_BOT_USERNAME="status_test_bot",
-    TELEGRAM_WEBHOOK_SECRET="test-webhook-secret",
-)
 class CustomerAccountTests(TestCase):
-    def test_customer_must_verify_telegram_contact_before_account_is_created(self):
+    def test_customer_can_register_without_phone_verification_and_is_logged_in(self):
         registration_page = self.client.get(reverse("register"))
         self.assertEqual(registration_page.status_code, 200)
         self.assertContains(registration_page, "Номер телефона")
+        self.assertNotContains(registration_page, "Telegram")
 
         response = self.client.post(
             reverse("register"),
@@ -315,127 +310,19 @@ class CustomerAccountTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "https://t.me/status_test_bot?start=")
-        self.assertFalse(get_user_model().objects.exists())
-        pending = PendingPhoneRegistration.objects.get()
-        self.assertEqual(pending.phone, "+996700123456")
-        self.assertNotEqual(pending.password_hash, "STATUS-strong-password-2026!")
-
-        with (
-            patch("PRILOJENIA1.views.send_contact_request") as send_contact_request,
-            patch("PRILOJENIA1.views.send_bot_message") as send_bot_message,
-        ):
-            start_response = self.client.post(
-                reverse("telegram_webhook"),
-                data=json.dumps({
-                    "message": {
-                        "chat": {"id": 987, "type": "private"},
-                        "from": {"id": 987},
-                        "text": f"/start {pending.token}",
-                    },
-                }),
-                content_type="application/json",
-                HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="test-webhook-secret",
-            )
-            contact_response = self.client.post(
-                reverse("telegram_webhook"),
-                data=json.dumps({
-                    "message": {
-                        "chat": {"id": 987, "type": "private"},
-                        "from": {"id": 987},
-                        "contact": {
-                            "user_id": 987,
-                            "phone_number": "+996700123456",
-                        },
-                    },
-                }),
-                content_type="application/json",
-                HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="test-webhook-secret",
-            )
-
-        self.assertEqual(start_response.status_code, 200)
-        self.assertTrue(send_contact_request.called)
-        self.assertEqual(contact_response.status_code, 200)
-        self.assertTrue(send_bot_message.called)
         user = get_user_model().objects.get(username="+996700123456")
+        self.assertRedirects(response, reverse("customer_profile"))
         self.assertEqual(user.first_name, "Айжан Тестова")
         self.assertEqual(user.email, "")
         self.assertTrue(user.check_password("STATUS-strong-password-2026!"))
-        self.assertTrue(user.customer_profile.phone_verified)
-
-        status_response = self.client.get(reverse("phone_verification_status"))
-        self.assertEqual(status_response.json()["status"], "verified")
+        self.assertEqual(user.customer_profile.phone, "+996700123456")
         self.assertEqual(int(self.client.session[SESSION_KEY]), user.pk)
 
-    def test_telegram_contact_must_belong_to_the_sender(self):
-        response = self.client.post(
-            reverse("register"),
-            {
-                "phone": "+996700123456",
-                "first_name": "Айжан",
-                "password1": "STATUS-strong-password-2026!",
-                "password2": "STATUS-strong-password-2026!",
-            },
-        )
-        pending = PendingPhoneRegistration.objects.get()
-
-        with patch("PRILOJENIA1.views.send_bot_message"):
-            webhook_response = self.client.post(
-                reverse("telegram_webhook"),
-                data=json.dumps({
-                    "message": {
-                        "chat": {"id": 987, "type": "private"},
-                        "from": {"id": 987},
-                        "contact": {
-                            "user_id": 654,
-                            "phone_number": "+996700123456",
-                        },
-                    },
-                }),
-                content_type="application/json",
-                HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="test-webhook-secret",
-            )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(webhook_response.status_code, 200)
-        self.assertFalse(PendingPhoneRegistration.objects.get(pk=pending.pk).user_id)
-        self.assertFalse(get_user_model().objects.exists())
-
-    def test_registration_requires_telegram_configuration(self):
-        with override_settings(
-            TELEGRAM_BOT_TOKEN="",
-            TELEGRAM_BOT_USERNAME="",
-            TELEGRAM_WEBHOOK_SECRET="",
-        ):
-            response = self.client.post(
-                reverse("register"),
-                {
-                    "phone": "+996700123456",
-                    "first_name": "Айжан",
-                    "password1": "STATUS-strong-password-2026!",
-                    "password2": "STATUS-strong-password-2026!",
-                },
-            )
-
-        self.assertContains(response, "Администратору нужно подключить Telegram-бота")
-        self.assertEqual(PendingPhoneRegistration.objects.count(), 0)
-
-    def test_telegram_webhook_rejects_requests_without_secret(self):
-        response = self.client.post(
-            reverse("telegram_webhook"),
-            data=json.dumps({"message": {}}),
-            content_type="application/json",
-        )
-
-        self.assertEqual(response.status_code, 403)
-
-    def test_existing_unverified_customer_can_verify_their_phone_again(self):
+    def test_registration_rejects_a_phone_already_in_use(self):
         user = get_user_model().objects.create_user(
-            username="old-customer",
-            email="old@example.com",
-            first_name="Старое имя",
-            password="Old-strong-password-2026!",
+            username="+996700123456",
+            first_name="Существующий покупатель",
+            password="STATUS-strong-password-2026!",
         )
         CustomerProfile.objects.create(user=user, phone="+996700123456")
 
@@ -443,52 +330,25 @@ class CustomerAccountTests(TestCase):
             reverse("register"),
             {
                 "phone": "+996700123456",
-                "first_name": "Новое имя",
-                "password1": "STATUS-strong-password-2026!",
-                "password2": "STATUS-strong-password-2026!",
+                "first_name": "Другой человек",
+                "password1": "STATUS-another-strong-password-2026!",
+                "password2": "STATUS-another-strong-password-2026!",
             },
         )
-        pending = PendingPhoneRegistration.objects.get()
+
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(pending.target_user, user)
-
-        with patch("PRILOJENIA1.views.send_bot_message"):
-            webhook_response = self.client.post(
-                reverse("telegram_webhook"),
-                data=json.dumps({
-                    "message": {
-                        "chat": {"id": 987, "type": "private"},
-                        "from": {"id": 987},
-                        "contact": {
-                            "user_id": 987,
-                            "phone_number": "+996700123456",
-                        },
-                    },
-                }),
-                content_type="application/json",
-                HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="test-webhook-secret",
-            )
-
-        self.assertEqual(webhook_response.status_code, 200)
-        user.refresh_from_db()
-        self.assertEqual(user.username, "+996700123456")
-        self.assertEqual(user.first_name, "Новое имя")
-        self.assertEqual(user.email, "")
-        self.assertTrue(user.customer_profile.phone_verified)
-        self.assertTrue(user.check_password("STATUS-strong-password-2026!"))
+        self.assertContains(response, "уже зарегистрирован")
+        self.assertEqual(get_user_model().objects.count(), 1)
+        self.assertNotIn(SESSION_KEY, self.client.session)
 
     def test_customer_can_log_in_with_phone_and_update_profile_name(self):
         user = get_user_model().objects.create_user(
-            username="+996700123456",
+            username="legacy-customer",
             email="",
             first_name="Айжан",
             password="STATUS-strong-password-2026!",
         )
-        CustomerProfile.objects.create(
-            user=user,
-            phone="+996700123456",
-            phone_verified=True,
-        )
+        CustomerProfile.objects.create(user=user, phone="+996700123456")
 
         login_page = self.client.get(reverse("login"))
         self.assertEqual(login_page.status_code, 200)
@@ -505,34 +365,12 @@ class CustomerAccountTests(TestCase):
 
         response = self.client.post(
             reverse("customer_profile"),
-            {
-                "first_name": "Айжан Тестова",
-            },
+            {"first_name": "Айжан Тестова"},
         )
         self.assertRedirects(response, reverse("customer_profile"))
         user.refresh_from_db()
         self.assertEqual(user.first_name, "Айжан Тестова")
         self.assertEqual(user.customer_profile.phone, "+996700123456")
-
-    def test_unverified_phone_cannot_be_used_to_log_in(self):
-        user = get_user_model().objects.create_user(
-            username="+996700123456",
-            email="",
-            first_name="Айжан",
-            password="STATUS-strong-password-2026!",
-        )
-        CustomerProfile.objects.create(user=user, phone="+996700123456")
-
-        response = self.client.post(
-            reverse("login"),
-            {
-                "username": "+996700123456",
-                "password": "STATUS-strong-password-2026!",
-            },
-        )
-
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn(SESSION_KEY, self.client.session)
 
     def test_profile_page_requires_login(self):
         response = self.client.get(reverse("customer_profile"))
@@ -557,7 +395,6 @@ class OrderFlowTests(TestCase):
         CustomerProfile.objects.create(
             user=self.user,
             phone="+996700123456",
-            phone_verified=True,
         )
         self.product = Product.objects.create(
             name="Поло STATUS",
@@ -635,6 +472,58 @@ class OrderFlowTests(TestCase):
         self.assertEqual(Order.objects.count(), 0)
         self.size.refresh_from_db()
         self.assertEqual(self.size.quantity, 3)
+
+    def test_cart_orders_tab_shows_only_customer_orders_and_their_statuses(self):
+        for status in (
+            Order.Status.PROCESSING,
+            Order.Status.COMPLETED,
+            Order.Status.CANCELLED,
+        ):
+            order = Order.objects.create(
+                user=self.user,
+                customer_name="Айжан Тестова",
+                customer_phone="+996700123456",
+                delivery_address="Бишкек",
+                total_price=5000,
+                status=status,
+            )
+            OrderItem.objects.create(
+                order=order,
+                product_name=f"Товар {status}",
+                quantity=1,
+                unit_price=5000,
+            )
+
+        another_user = get_user_model().objects.create_user(
+            username="another-customer",
+            password="another-strong-password",
+        )
+        Order.objects.create(
+            user=another_user,
+            customer_name="Другой покупатель",
+            customer_phone="+996555000000",
+            delivery_address="Ош",
+            total_price=9000,
+        )
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Мои заказы")
+        self.assertContains(response, "В обработке")
+        self.assertContains(response, "Выполнен")
+        self.assertContains(response, "Отменён")
+        self.assertNotContains(response, "Другой покупатель")
+        self.assertEqual(response.context["customer_orders"].count(), 3)
+
+    def test_guest_can_open_orders_tab_and_is_asked_to_sign_in(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Мои заказы")
+        self.assertContains(response, "Войдите, чтобы увидеть заказы")
+        self.assertContains(response, "Войти в аккаунт")
 
 
 class AdminProfileTests(TestCase):

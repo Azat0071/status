@@ -47,48 +47,7 @@
             {% endfor %}
         {% endif %}
 
-        {% if mode == "telegram_pending" %}
-            <section class="border border-surfaceBorder bg-surface/50 p-6 sm:p-10 text-center">
-                <div class="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full border border-[#b83b4b] text-[#b83b4b]">
-                    <span class="font-header text-xl">S</span>
-                </div>
-                <h2 class="font-header text-lg sm:text-xl font-bold uppercase">Подтвердите свой номер</h2>
-                <p class="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-steelGray">
-                    Откройте нашего Telegram-бота, нажмите «Начать», затем поделитесь своим номером кнопкой «Подтвердить мой номер».
-                    Бот принимает только ваш собственный контакт.
-                </p>
-                <a href="{{ telegram_url }}" target="_blank" rel="noopener noreferrer" class="mt-8 inline-flex w-full items-center justify-center bg-deepBurgundy px-6 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-deepBurgundy-hover sm:w-auto">
-                    Открыть Telegram
-                </a>
-                <p id="verification-status" role="status" class="mt-6 text-xs text-steelGray">Ожидаем подтверждение… Эта страница обновится автоматически.</p>
-                <p class="mt-4 text-[10px] leading-relaxed text-steelGray">Ссылка действует 10 минут. Не отправляйте её другим людям.</p>
-            </section>
-            <script>
-                const verificationStatus = document.getElementById('verification-status');
-                async function checkPhoneVerification() {
-                    try {
-                        const response = await fetch("{{ verification_status_url }}", {
-                            headers: { 'Accept': 'application/json' },
-                            credentials: 'same-origin',
-                        });
-                        const result = await response.json();
-                        if(result.status === 'verified') {
-                            verificationStatus.innerText = 'Номер подтверждён. Входим в аккаунт…';
-                            window.location.assign(result.redirect_url);
-                            return;
-                        }
-                        if(result.status === 'expired' || result.status === 'missing') {
-                            verificationStatus.innerText = 'Срок ссылки истёк. Вернитесь и начните регистрацию заново.';
-                            return;
-                        }
-                    } catch (error) {
-                        verificationStatus.innerText = 'Не удалось проверить подтверждение. Проверьте соединение и обновите страницу.';
-                    }
-                    window.setTimeout(checkPhoneVerification, 3000);
-                }
-                window.setTimeout(checkPhoneVerification, 2000);
-            </script>
-        {% elif mode == "profile" %}
+        {% if mode == "profile" %}
             <form method="post" class="border border-surfaceBorder bg-surface/50 p-5 sm:p-8 space-y-5">
                 {% csrf_token %}
                 {% for field in form %}
@@ -105,7 +64,6 @@
             <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
                 <p class="text-xs text-steelGray">
                     Телефон: {{ customer_profile.phone|default:"не указан" }}
-                    {% if customer_profile.phone_verified %}<span class="ml-2 text-green-500">подтверждён</span>{% endif %}
                 </p>
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}

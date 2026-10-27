@@ -45,11 +45,10 @@ class CustomerRegistrationForm(forms.Form):
         existing_profile = CustomerProfile.objects.select_related("user").filter(
             phone=phone
         ).first()
-        if existing_profile and existing_profile.phone_verified:
+        if existing_profile:
             raise ValidationError("Этот номер уже зарегистрирован.")
-        if not existing_profile and User.objects.filter(username=phone).exists():
+        if User.objects.filter(username=phone).exists():
             raise ValidationError("Этот номер уже используется.")
-        self.existing_user = existing_profile.user if existing_profile else None
         return phone
 
     def clean(self):
@@ -90,8 +89,7 @@ class CustomerLoginForm(AuthenticationForm):
                 self.add_error("username", error)
                 return self.cleaned_data
             profile = CustomerProfile.objects.select_related("user").filter(
-                phone=phone,
-                phone_verified=True,
+                phone=phone
             ).first()
             if profile is not None:
                 self.user_cache = authenticate(

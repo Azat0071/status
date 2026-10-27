@@ -99,26 +99,77 @@
     <!-- CART SIDE DRAWER -->
     <div id="cart-drawer-bg" onclick="toggleCartDrawer(false)" class="fixed inset-0 bg-black/85 z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
     <aside id="cart-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-obsidian border-l border-surfaceBorder z-50 translate-x-full drawer-transition flex flex-col justify-between">
-        <div class="p-8 border-b border-surfaceBorder flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <span class="font-header text-lg font-extrabold tracking-[0.2em] text-white uppercase">КОРЗИНА</span>
-                <span id="cart-count-header" class="text-xs text-steelGray font-light">(0)</span>
+        <div class="px-6 pt-6 border-b border-surfaceBorder">
+            <div class="pb-5 flex justify-between items-center">
+                <span class="font-header text-lg font-extrabold tracking-[0.2em] text-white uppercase">ПОКУПКИ</span>
+                <button onclick="toggleCartDrawer(false)" class="text-steelGray hover:text-white text-lg transition-colors" aria-label="Закрыть">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <button onclick="toggleCartDrawer(false)" class="text-steelGray hover:text-white text-lg transition-colors" aria-label="Закрыть">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+            <div role="tablist" aria-label="Корзина и оформленные заказы" class="grid grid-cols-2 gap-2">
+                <button id="cart-tab-button" type="button" role="tab" aria-selected="true" onclick="selectCartSection('cart')" class="border-b-2 border-deepBurgundy py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                    Корзина <span id="cart-count-header" class="font-light">(0)</span>
+                </button>
+                <button id="orders-tab-button" type="button" role="tab" aria-selected="false" onclick="selectCartSection('orders')" class="border-b-2 border-transparent py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-steelGray hover:text-white">
+                    Мои заказы ({{ customer_orders|length }})
+                </button>
+            </div>
         </div>
 
         <!-- Cart Items Container -->
-        <div id="cart-items-container" class="p-8 overflow-y-auto flex-1 space-y-6">
+        <div id="cart-items-container" role="tabpanel" aria-labelledby="cart-tab-button" class="p-8 overflow-y-auto flex-1 space-y-6">
             <div id="cart-empty-msg" class="text-center py-20 text-steelGray font-light">
                 <p class="font-header text-sm font-bold text-white mb-2 uppercase tracking-widest">КОРЗИНА ПУСТА</p>
                 <p class="text-xs text-steelGray">ВЫБЕРИТЕ ИЗДЕЛИЯ ИЗ КОЛЛЕКЦИИ</p>
             </div>
         </div>
 
+        <div id="orders-container" role="tabpanel" aria-labelledby="orders-tab-button" class="hidden p-6 overflow-y-auto flex-1 space-y-4">
+            {% if request.user.is_authenticated %}
+                {% for order in customer_orders %}
+                    <article class="border border-surfaceBorder bg-surface/70 p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 class="font-header text-xs font-bold uppercase tracking-wider text-white">Заказ №{{ order.pk }}</h3>
+                                <p class="mt-1 text-[10px] text-steelGray">{{ order.created_at|date:"d.m.Y H:i" }}</p>
+                            </div>
+                            <span class="shrink-0 border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider
+                                {% if order.status == 'completed' %}border-green-900 text-green-400
+                                {% elif order.status == 'cancelled' %}border-red-900 text-red-400
+                                {% elif order.status == 'processing' %}border-amber-900 text-amber-400
+                                {% else %}border-deepBurgundy text-[#d46a78]{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                        <ul class="mt-4 space-y-2 border-t border-surfaceBorder pt-3 text-[11px] text-steelGray">
+                            {% for item in order.items.all %}
+                                <li class="flex justify-between gap-3">
+                                    <span>{{ item.product_name }} × {{ item.quantity }}{% if item.sizes %} ({{ item.sizes }}){% endif %}</span>
+                                    <span class="shrink-0">{{ item.unit_price }} сом</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="mt-4 flex justify-between gap-3 border-t border-surfaceBorder pt-3 text-xs">
+                            <span class="text-steelGray">Доставка: {{ order.delivery_address }}</span>
+                            <span class="shrink-0 font-bold text-white">{{ order.total_price }} сом</span>
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="py-16 text-center">
+                        <p class="font-header text-sm font-bold uppercase tracking-widest text-white">Заказов пока нет</p>
+                        <p class="mt-2 text-xs text-steelGray">Оформленные покупки появятся здесь.</p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="py-16 text-center">
+                    <p class="font-header text-sm font-bold uppercase tracking-widest text-white">Войдите, чтобы увидеть заказы</p>
+                    <a href="{% url 'login' %}?next=%2F%3Forders%3D1" class="mt-5 inline-block bg-deepBurgundy px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-deepBurgundy-hover">Войти в аккаунт</a>
+                </div>
+            {% endif %}
+        </div>
+
         <!-- Cart Total & Actions -->
-        <div class="p-8 border-t border-surfaceBorder space-y-6 bg-surface">
+        <div id="cart-footer" class="p-8 border-t border-surfaceBorder space-y-6 bg-surface">
             <div class="flex justify-between items-center text-sm">
                 <span class="text-steelGray uppercase tracking-[0.2em] text-[10px] font-semibold">ИТОГОВАЯ СУММА</span>
                 <span id="cart-total-price" class="font-header text-xl text-white font-bold tracking-wider">0 KGS</span>
@@ -218,7 +269,7 @@
             <!-- Navigation Links -->
             <nav class="hidden md:flex items-center space-x-10 text-[11px] tracking-[0.25em] font-semibold uppercase text-steelGray">
                 <a href="#home" aria-current="page" class="text-[#b83b4b] hover:text-white transition-colors">ГЛАВНАЯ</a>
-                <a href="#catalog" class="hover:text-white transition-colors">КОЛЛЕКЦИЯ</a>
+                <a href="#catalog" class="hover:text-white transition-colors">КАТАЛОГ</a>
                 <a href="#lookbook" class="hover:text-white transition-colors">КАПСУЛА</a>
             </nav>
 
@@ -250,7 +301,7 @@
         <div id="mobile-menu" class="hidden md:hidden bg-obsidian border-b border-surfaceBorder px-6 py-6">
             <div class="flex flex-col space-y-4 text-center font-header text-xs tracking-[0.25em] uppercase font-bold text-steelGray">
                 <a href="#home" aria-current="page" class="text-[#b83b4b] hover:text-white py-2">ГЛАВНАЯ</a>
-                <a href="#catalog" class="hover:text-white py-2">КОЛЛЕКЦИЯ</a>
+                <a href="#catalog" class="hover:text-white py-2">КАТАЛОГ</a>
                 <a href="#lookbook" class="hover:text-white py-2">КАПСУЛА</a>
             </div>
         </div>
@@ -317,7 +368,7 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-16 gap-6">
             <div class="space-y-3">
                 <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">КАТАЛОГ ИЗДЕЛИЙ</span>
-                <h2 class="font-header text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">КОЛЛЕКЦИЯ «НАСЛЕДИЕ»</h2>
+                <h2 class="font-header text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">КАТАЛОГ</h2>
             </div>
 
             <!-- Category Filter Buttons -->
@@ -602,6 +653,27 @@
             }
         }
 
+        function selectCartSection(section) {
+            if(section === 'orders' && !isAuthenticated) {
+                window.location.href = "{% url 'login' %}?next=%2F%3Forders%3D1";
+                return;
+            }
+            const showOrders = section === 'orders';
+            document.getElementById('cart-items-container').classList.toggle('hidden', showOrders);
+            document.getElementById('orders-container').classList.toggle('hidden', !showOrders);
+            document.getElementById('cart-footer').classList.toggle('hidden', showOrders);
+            document.getElementById('cart-tab-button').setAttribute('aria-selected', String(!showOrders));
+            document.getElementById('orders-tab-button').setAttribute('aria-selected', String(showOrders));
+            document.getElementById('cart-tab-button').classList.toggle('border-deepBurgundy', !showOrders);
+            document.getElementById('cart-tab-button').classList.toggle('border-transparent', showOrders);
+            document.getElementById('cart-tab-button').classList.toggle('text-white', !showOrders);
+            document.getElementById('cart-tab-button').classList.toggle('text-steelGray', showOrders);
+            document.getElementById('orders-tab-button').classList.toggle('border-deepBurgundy', showOrders);
+            document.getElementById('orders-tab-button').classList.toggle('border-transparent', !showOrders);
+            document.getElementById('orders-tab-button').classList.toggle('text-white', showOrders);
+            document.getElementById('orders-tab-button').classList.toggle('text-steelGray', !showOrders);
+        }
+
         function addToCart(id) {
             const product = products.find(p => p.id === id);
             if(product && product.totalStock === 0) {
@@ -816,8 +888,7 @@
                 closeCheckoutModal();
                 cart = [];
                 saveCart();
-                updateCartUI();
-                showToast("ЗАКАЗ ОФОРМЛЕН", result.message);
+                window.location.href = `{% url 'home' %}?orders=1&order=${encodeURIComponent(result.order_id)}`;
             } catch (error) {
                 errorMessage.innerText = error.message || 'Ошибка при отправке заказа. Попробуйте ещё раз.';
                 errorMessage.classList.remove('hidden');
@@ -849,6 +920,15 @@
             renderLookbook();
             updateLookbook();
             updateCartUI();
+            const pageParams = new URLSearchParams(window.location.search);
+            if(pageParams.get('orders') === '1') {
+                selectCartSection('orders');
+                toggleCartDrawer(true);
+                const orderId = pageParams.get('order');
+                if(orderId) {
+                    showToast("ЗАКАЗ ОФОРМЛЕН", `Заказ №${orderId} добавлен в список заказов.`);
+                }
+            }
             if(new URLSearchParams(window.location.search).get('checkout') === '1' && isAuthenticated && cart.length) {
                 document.getElementById('checkout-modal').classList.remove('hidden');
             }
