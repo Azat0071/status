@@ -1,0 +1,78 @@
+{% comment %}
+Точка продаж в шапке как одна запись с раскрывающейся панелью точек.
+Ожидает в контексте: stores, current_store.
+{% endcomment %}
+{% if stores %}
+    <div class="relative" data-store-switcher>
+        <button type="button" data-store-trigger aria-expanded="false" aria-controls="store-panel"
+                class="flex items-center gap-4 h-12 pl-4 pr-3 border border-surfaceBorder bg-surface hover:border-steelGray transition-colors">
+            <span class="flex flex-col items-start leading-none">
+                <span class="font-header text-[11px] font-bold uppercase tracking-[0.18em] text-white">{{ current_store.name }}</span>
+                <span class="text-[9px] text-steelGray mt-1.5">{{ current_store.address }} · {{ current_store.working_hours }}</span>
+            </span>
+            <i class="fa-solid fa-chevron-down text-steelGray text-[11px]" aria-hidden="true"></i>
+        </button>
+
+        <div id="store-panel" data-store-panel
+             class="hidden absolute left-0 top-[56px] w-[440px] border border-surfaceBorder bg-surface z-50">
+            {% for point in stores %}
+                <div class="{% if not forloop.first %}border-t border-surfaceBorder{% endif %} px-6 {% if forloop.first %}pt-6 pb-5{% else %}pt-5 pb-6{% endif %}">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="font-header text-[13px] font-bold uppercase tracking-[0.16em] {% if point.pk == current_store.pk %}text-white{% else %}text-white{% endif %}">{{ point.name }}</p>
+                            <p class="mt-2 text-[11px] text-steelGray">{{ point.address }}</p>
+                            <p class="mt-1 text-[11px] text-steelGray">
+                                {{ point.working_hours }}{% if point.phone %} · {{ point.phone }}{% endif %}
+                            </p>
+                        </div>
+                        {% if point.pk == current_store.pk %}
+                            <span class="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.14em] text-[#b83b4b] shrink-0">
+                                <i class="fa-solid fa-check text-[11px]" aria-hidden="true"></i> Выбрано
+                            </span>
+                        {% else %}
+                            <span class="h-4 w-4 border border-surfaceBorder shrink-0 mt-1" aria-hidden="true"></span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-5 flex items-center justify-between gap-4 text-[10px] uppercase tracking-[0.16em]">
+                        <span class="text-steelGray">Позиций в наличии</span>
+                        <span class="text-white">{{ point.positions }}</span>
+                    </div>
+
+                    {% if point.pk != current_store.pk %}
+                        <form method="post" action="{% url 'select_store' %}" class="mt-5">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                            <input type="hidden" name="store" value="{{ point.id }}">
+                            <button type="submit"
+                                    class="w-full h-10 border border-[#b83b4b] text-[9px] font-bold uppercase tracking-[0.18em] text-white hover:bg-deepBurgundy hover:border-deepBurgundy transition-colors">
+                                Перейти в {{ point.name }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const switcher = document.currentScript.closest('[data-store-switcher]')
+                || document.querySelector('[data-store-switcher]');
+            if (!switcher) return;
+            const trigger = switcher.querySelector('[data-store-trigger]');
+            const panel = switcher.querySelector('[data-store-panel]');
+            if (!trigger || !panel) return;
+            trigger.addEventListener('click', () => {
+                const isOpen = panel.classList.toggle('hidden') === false;
+                trigger.setAttribute('aria-expanded', String(isOpen));
+            });
+            document.addEventListener('click', (event) => {
+                if (!switcher.contains(event.target)) {
+                    panel.classList.add('hidden');
+                    trigger.setAttribute('aria-expanded', 'false');
+                }
+            });
+        })();
+    </script>
+{% endif %}

@@ -18,6 +18,8 @@ from .models import (
     OrderItem,
     Product,
     ProductSize,
+    RestockRequest,
+    Store,
 )
 
 
@@ -86,6 +88,11 @@ class HomePageTests(TestCase):
         self.media_dir = tempfile.TemporaryDirectory()
         self.override_media = override_settings(MEDIA_ROOT=self.media_dir.name)
         self.override_media.enable()
+        self.store = Store.objects.create(
+            name="Токтогула",
+            address="ул. Токтогула, 87",
+            is_default=True,
+        )
 
     def tearDown(self):
         self.override_media.disable()
@@ -109,17 +116,13 @@ class HomePageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "collection.html")
-        self.assertContains(response, "НАЙДИТЕ СВОЙ ОБРАЗ")
+        self.assertContains(response, "КОЛЛЕКЦИЯ")
         self.assertContains(response, 'data-filter="knit"')
         self.assertContains(response, "Коллекция скоро появится")
-        self.assertContains(
-            response,
-            'aria-current="page" class="text-[#b83b4b] hover:text-white',
-        )
-        self.assertContains(response, "Мой профиль")
+        self.assertContains(response, "Токтогула")
 
-    def test_collection_marks_products_with_no_stock(self):
-        Product.objects.create(
+    def test_products_sold_out_everywhere_move_to_out_of_stock_page(self):
+        product = Product.objects.create(
             name="Поло без остатка",
             category=Product.Category.KNIT,
             price=5000,
@@ -136,12 +139,21 @@ class HomePageTests(TestCase):
                 content_type="image/png",
             ),
         )
+        ProductSize.objects.create(
+            product=product,
+            store=self.store,
+            size="M",
+            quantity=0,
+        )
 
-        response = self.client.get(reverse("collection"))
+        collection_response = self.client.get(reverse("collection"))
 
-        self.assertContains(response, "Поло без остатка")
-        self.assertContains(response, "НЕТ В НАЛИЧИИ")
-        self.assertContains(response, "Под заказ")
+        self.assertNotContains(collection_response, "Поло без остатка")
+
+        stock_response = self.client.get(reverse("out_of_stock"))
+
+        self.assertEqual(stock_response.status_code, 200)
+        self.assertContains(stock_response, "Поло без остатка")
 
     def test_available_products_are_rendered_as_json_for_catalog(self):
         product = Product.objects.create(
@@ -161,16 +173,20 @@ class HomePageTests(TestCase):
                 content_type="image/png",
             ),
         )
-        ProductSize.objects.create(product=product, size="M", quantity=3)
-        ProductSize.objects.create(product=product, size="L", quantity=2)
+        ProductSize.objects.create(
+            product=product, store=self.store, size="M", quantity=3
+        )
+        ProductSize.objects.create(
+            product=product, store=self.store, size="L", quantity=2
+        )
 
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["products"][0]["name"], product.name)
         self.assertEqual(response.context["products"][0]["sizes"], [
-            {"size": "L", "quantity": 2},
             {"size": "M", "quantity": 3},
+            {"size": "L", "quantity": 2},
         ])
         self.assertEqual(response.context["products"][0]["totalStock"], 5)
         self.assertContains(response, "/media/products/coat.png")
@@ -179,7 +195,9 @@ class HomePageTests(TestCase):
 
         self.assertEqual(collection_response.status_code, 200)
         self.assertContains(collection_response, "Пальто")
-        self.assertContains(collection_response, "В наличии: 5 шт.")
+        self.assertEqual(
+            collection_response.context["catalog"][0]["total_stock"], 5
+        )
 
     def test_unavailable_products_are_not_shown(self):
         Product.objects.create(
@@ -396,6 +414,11 @@ class OrderFlowTests(TestCase):
             user=self.user,
             phone="+996700123456",
         )
+        self.store = Store.objects.create(
+            name="Токтогула",
+            address="ул. Токтогула, 87",
+            is_default=True,
+        )
         self.product = Product.objects.create(
             name="Поло STATUS",
             category=Product.Category.KNIT,
@@ -415,6 +438,7 @@ class OrderFlowTests(TestCase):
         )
         self.size = ProductSize.objects.create(
             product=self.product,
+            store=self.store,
             size="M",
             quantity=3,
         )
@@ -468,8 +492,9 @@ class OrderFlowTests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 409)
         self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(len(response.json()["conflicts"]), 1)
         self.size.refresh_from_db()
         self.assertEqual(self.size.quantity, 3)
 
@@ -515,7 +540,7 @@ class OrderFlowTests(TestCase):
         self.assertContains(response, "Выполнен")
         self.assertContains(response, "Отменён")
         self.assertNotContains(response, "Другой покупатель")
-        self.assertEqual(response.context["customer_orders"].count(), 3)
+        self.assertEqual(len(response.context["customer_orders"]), 3)
 
     def test_guest_can_open_orders_tab_and_is_asked_to_sign_in(self):
         response = self.client.get(reverse("home"))
@@ -648,3 +673,264 @@ class AdminProfileTests(TestCase):
             int(self.client.session[SESSION_KEY]),
             self.user.pk,
         )
+
+
+class StoreStockTests(TestCase):
+    def setUp(self):
+        self.main = Store.objects.create(
+            name="Токтогула", address="ул. Токтогула, 87", is_default=True
+        )
+        self.second = Store.objects.create(name="Чуй", address="пр. Чуй, 155")
+        self.product = Product.objects.create(
+            name="Поло «Borgona»",
+            sku="ST-KN-104",
+            category=Product.Category.KNIT,
+            price=18400,
+            description="Тест",
+            image="products/polo.jpg",
+        )
+        self.sold_out = Product.objects.create(
+            name="Кашне «Como»",
+            sku="ST-AC-512",
+            category=Product.Category.ACCESSORIES,
+            price=9200,
+            description="Тест",
+            image="products/scarf.jpg",
+        )
+        ProductSize.objects.create(
+            product=self.product, store=self.main, size="M", quantity=1
+        )
+        ProductSize.objects.create(
+            product=self.product, store=self.second, size="L", quantity=4
+        )
+        ProductSize.objects.create(
+            product=self.sold_out, store=self.main, size="ONE SIZE", quantity=0
+        )
+        ProductSize.objects.create(
+            product=self.sold_out, store=self.second, size="ONE SIZE", quantity=0
+        )
+
+    def test_store_selection_is_kept_in_session(self):
+        response = self.client.post(
+            reverse("select_store"),
+            {"store": self.second.pk, "next": reverse("collection")},
+        )
+
+        self.assertRedirects(response, reverse("collection"))
+        self.assertEqual(self.client.session["store_id"], self.second.pk)
+
+    def test_store_selection_ignores_foreign_redirect(self):
+        response = self.client.post(
+            reverse("select_store"),
+            {"store": self.second.pk, "next": "https://evil.example.com/"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("evil.example.com", response["Location"])
+
+    def test_default_store_is_used_for_first_visit(self):
+        response = self.client.get(reverse("collection"))
+
+        self.assertEqual(response.context["current_store"], self.main)
+
+    def test_catalog_shows_stock_of_selected_store_only(self):
+        response = self.client.get(reverse("collection"))
+
+        items = {item["product"].pk: item for item in response.context["catalog"]}
+        self.assertEqual(items[self.product.pk]["total_stock"], 1)
+        self.assertEqual(
+            [stock.size for stock in items[self.product.pk]["sizes"]], ["M"]
+        )
+        self.assertEqual(
+            items[self.product.pk]["other_stores"][0]["store"], self.second
+        )
+
+    def test_sold_out_products_are_not_in_catalog(self):
+        response = self.client.get(reverse("collection"))
+
+        products = [item["product"].pk for item in response.context["catalog"]]
+        self.assertNotIn(self.sold_out.pk, products)
+
+    def test_out_of_stock_page_lists_only_sold_out_products(self):
+        response = self.client.get(reverse("out_of_stock"))
+
+        products = [item["product"].pk for item in response.context["items"]]
+        self.assertEqual(products, [self.sold_out.pk])
+
+    def _customer(self, username="+996700000001"):
+        user = get_user_model().objects.create_user(
+            username=username, first_name="Тест", password="Secret12345"
+        )
+        CustomerProfile.objects.create(user=user, phone=username)
+        self.client.force_login(user)
+        return user
+
+    def _checkout(self, items, **extra):
+        payload = {"address": "г. Бишкек, ул. Киевская 1", "items": items}
+        payload.update(extra)
+        return self.client.post(
+            reverse("create_order"),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+    def test_cart_validate_marks_short_and_gone_lines(self):
+        response = self.client.post(
+            reverse("validate_cart"),
+            data=json.dumps(
+                {
+                    "items": [
+                        {"id": self.product.pk, "store": self.main.pk, "quantity": 3},
+                        {"id": self.sold_out.pk, "store": self.main.pk, "quantity": 1},
+                    ]
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        lines = {
+            (line["product_id"], line["store_id"]): line
+            for line in response.json()["lines"]
+        }
+        short_line = lines[(self.product.pk, self.main.pk)]
+        self.assertEqual(short_line["status"], "short")
+        self.assertEqual(short_line["available"], 1)
+        self.assertEqual(short_line["others"][0]["store_name"], "Чуй")
+        self.assertEqual(lines[(self.sold_out.pk, self.main.pk)]["status"], "gone")
+
+    def test_checkout_splits_lines_into_one_order_per_store(self):
+        self._customer()
+        response = self._checkout(
+            [
+                {"id": self.product.pk, "store": self.main.pk, "quantity": 1},
+                {"id": self.product.pk, "store": self.second.pk, "quantity": 2},
+            ],
+            checkout_id="11111111-1111-4111-8111-111111111111",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.json()["orders"]), 2)
+        orders = list(Order.objects.order_by("store_id"))
+        self.assertEqual(
+            {order.store_id for order in orders}, {self.main.pk, self.second.pk}
+        )
+        self.assertEqual(len({str(order.checkout_id) for order in orders}), 1)
+        self.assertEqual(
+            ProductSize.objects.get(
+                product=self.product, store=self.main, size="M"
+            ).quantity,
+            0,
+        )
+        self.assertEqual(
+            ProductSize.objects.get(
+                product=self.product, store=self.second, size="L"
+            ).quantity,
+            2,
+        )
+
+    def test_checkout_with_conflicts_creates_nothing(self):
+        self._customer()
+        response = self._checkout(
+            [{"id": self.product.pk, "store": self.main.pk, "quantity": 3}],
+            checkout_id="22222222-2222-4222-8222-222222222222",
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["conflicts"][0]["available"], 1)
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(
+            ProductSize.objects.get(
+                product=self.product, store=self.main, size="M"
+            ).quantity,
+            1,
+        )
+
+    def test_checkout_confirm_partial_keeps_only_available_lines(self):
+        self._customer()
+        response = self._checkout(
+            [
+                {"id": self.product.pk, "store": self.main.pk, "quantity": 1},
+                {"id": self.sold_out.pk, "store": self.main.pk, "quantity": 1},
+            ],
+            confirm_partial=True,
+            checkout_id="33333333-3333-4333-8333-333333333333",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertEqual(len(data["orders"]), 1)
+        self.assertEqual(len(data["dropped"]), 1)
+        self.assertEqual(OrderItem.objects.count(), 1)
+
+    def test_checkout_duplicate_checkout_id_is_idempotent(self):
+        self._customer()
+        items = [{"id": self.product.pk, "store": self.main.pk, "quantity": 1}]
+        first = self._checkout(
+            items, checkout_id="44444444-4444-4444-8444-444444444444"
+        )
+        second = self._checkout(
+            items, checkout_id="44444444-4444-4444-8444-444444444444"
+        )
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 200)
+        self.assertTrue(second.json()["duplicate"])
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_checkout_is_atomic_when_another_store_lacks_stock(self):
+        self._customer()
+        response = self._checkout(
+            [
+                {"id": self.product.pk, "store": self.second.pk, "quantity": 4},
+                {"id": self.product.pk, "store": self.main.pk, "quantity": 5},
+            ]
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertEqual(
+            ProductSize.objects.get(
+                product=self.product, store=self.second, size="L"
+            ).quantity,
+            4,
+        )
+
+    def test_restock_request_is_created_from_sold_out_page(self):
+        response = self.client.post(
+            reverse("out_of_stock"),
+            {
+                "product": self.sold_out.pk,
+                "kind": RestockRequest.Kind.TAILOR,
+                "phone": "+996700000003",
+                "comment": "Нужен размер",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        restock_request = RestockRequest.objects.get()
+        self.assertEqual(restock_request.product, self.sold_out)
+        self.assertEqual(restock_request.kind, RestockRequest.Kind.TAILOR)
+
+    def test_checkout_rejects_quantity_above_selected_store_stock(self):
+        user = get_user_model().objects.create_user(
+            username="+996700000004", first_name="Тест", password="Secret12345"
+        )
+        CustomerProfile.objects.create(user=user, phone="+996700000004")
+        self.client.force_login(user)
+        self.client.post(reverse("select_store"), {"store": self.main.pk})
+
+        response = self.client.post(
+            reverse("create_order"),
+            data=json.dumps(
+                {
+                    "address": "г. Бишкек, ул. Киевская 1",
+                    "items": [{"id": self.product.pk, "quantity": 2}],
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["conflicts"][0]["store_name"], "Токтогула")
+        self.assertEqual(Order.objects.count(), 0)

@@ -79,6 +79,12 @@
                             <span class="font-bold uppercase">Заказ №{{ order.pk }}</span>
                             <span class="text-steelGray">{{ order.get_status_display }} · {{ order.created_at|date:"d.m.Y H:i" }}</span>
                         </div>
+                        {% if order.store or order.checkout_group_ids %}
+                            <p class="mt-2 text-[11px] text-steelGray">
+                                {% if order.store %}{{ order.store.name }} · {{ order.store.address }}{% endif %}
+                                {% if order.checkout_group_ids %}{% if order.store %} — {% endif %}оформлен вместе с №{{ order.checkout_group_ids|join:", №" }}{% endif %}
+                            </p>
+                        {% endif %}
                         <ul class="mt-4 space-y-2 text-xs text-steelGray">
                             {% for item in order.items.all %}
                                 <li>{{ item.product_name }} × {{ item.quantity }}{% if item.sizes %} ({{ item.sizes }}){% endif %}</li>

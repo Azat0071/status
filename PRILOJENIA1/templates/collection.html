@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Коллекция STATUS | Наследие</title>
+    <title>Коллекция STATUS | Наличие по точкам</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +18,7 @@
                         obsidian: '#080808',
                         surface: '#111111',
                         surfaceBorder: '#222222',
+                        accent: '#b83b4b',
                         deepBurgundy: {
                             DEFAULT: '#5a0f17',
                             hover: '#7a131e',
@@ -34,147 +35,194 @@
     </script>
 </head>
 <body class="bg-obsidian text-white font-sans antialiased">
+
+    {% if messages %}
+        <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+            {% for message in messages %}
+                <p role="status" class="max-w-sm border border-surfaceBorder bg-surface px-5 py-3 text-xs text-white">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <header class="fixed top-0 left-0 w-full z-40 bg-obsidian/95 border-b border-surfaceBorder backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-3 sm:gap-6">
-                <a href="{% url 'home' %}" class="flex flex-col" aria-label="STATUS — главная">
-                    <span class="font-header text-2xl md:text-3xl font-black tracking-[0.4em] uppercase">STATUS</span>
-                    <span class="text-[8px] tracking-[0.6em] text-steelGray font-semibold uppercase -mt-1">HAUTE COUTURE</span>
-                </a>
-                {% if request.user.is_authenticated %}
-                    <a href="{% url 'customer_profile' %}" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
-                {% else %}
-                    <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
-                {% endif %}
-            </div>
-            <nav class="hidden md:flex items-center gap-10 text-[11px] tracking-[0.25em] font-semibold uppercase text-steelGray">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 h-[72px] flex items-center justify-between gap-4">
+            <a href="{% url 'home' %}" class="flex flex-col shrink-0" aria-label="STATUS — главная">
+                <span class="font-header text-[22px] font-black tracking-[0.4em] uppercase leading-none">STATUS</span>
+                <span class="text-[7px] tracking-[0.55em] text-steelGray font-semibold uppercase mt-1">HAUTE COUTURE</span>
+            </a>
+
+            {% include "includes/store_plates.html" %}
+
+            <nav class="hidden lg:flex items-center gap-7 text-[10px] tracking-[0.22em] font-semibold uppercase text-steelGray shrink-0">
                 <a href="{% url 'home' %}" class="hover:text-white transition-colors">ГЛАВНАЯ</a>
-                <a href="{% url 'collection' %}" aria-current="page" class="text-[#b83b4b] hover:text-white transition-colors">КОЛЛЕКЦИЯ</a>
+                <a href="{% url 'collection' %}" aria-current="page" class="text-accent hover:text-white transition-colors">КОЛЛЕКЦИЯ</a>
+                <a href="{% url 'out_of_stock' %}" class="hover:text-white transition-colors">НЕТ В НАЛИЧИИ</a>
                 <a href="{% url 'home' %}#lookbook" class="hover:text-white transition-colors">КАПСУЛА</a>
             </nav>
-            <div class="flex items-center gap-5">
-                <a href="{% url 'home' %}#concierge" class="text-[10px] tracking-[0.2em] uppercase font-bold text-steelGray hover:text-white transition-colors">
-                    <span class="hidden sm:inline">КОНСЬЕРЖ</span>
-                    <i class="fa-solid fa-arrow-right sm:ml-2" aria-hidden="true"></i>
-                </a>
-                <button id="menu-btn" type="button" class="md:hidden text-lg text-white" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu">
-                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+
+            <div class="flex items-center gap-4 text-steelGray shrink-0">
+                <a href="{% url 'home' %}#catalog" class="text-sm hover:text-white transition-colors" aria-label="Поиск на главной"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></a>
+                <button type="button" data-cart-open class="relative text-sm hover:text-white transition-colors" aria-label="Корзина">
+                    <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                    <span id="cart-count-badge" class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
                 </button>
             </div>
         </div>
-        <nav id="mobile-menu" class="hidden md:hidden bg-obsidian border-t border-surfaceBorder px-6 py-6">
-            <div class="flex flex-col space-y-4 text-center font-header text-xs tracking-[0.25em] uppercase font-bold text-steelGray">
-                <a href="{% url 'home' %}" class="hover:text-white py-2">ГЛАВНАЯ</a>
-                <a href="{% url 'collection' %}" aria-current="page" class="text-[#b83b4b] hover:text-white py-2">КОЛЛЕКЦИЯ</a>
-                <a href="{% url 'home' %}#lookbook" class="hover:text-white py-2">КАПСУЛА</a>
-            </div>
-        </nav>
     </header>
 
-    <main class="pt-20">
-        <section class="relative overflow-hidden border-b border-surfaceBorder">
-            <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_75%_40%,rgba(90,15,23,0.22),transparent_55%)]" aria-hidden="true"></div>
-            <div class="relative max-w-7xl mx-auto px-6 lg:px-12 py-20 sm:py-28 lg:py-36">
-                <div class="max-w-3xl">
-                    <div class="inline-flex items-center gap-3 border-b-2 border-deepBurgundy pb-2 mb-8">
-                        <span class="text-[9px] sm:text-[10px] tracking-[0.4em] uppercase text-white font-bold">STATUS / ОСЕНЬ — ЗИМА 2026</span>
-                    </div>
-                    <h1 class="font-header text-4xl sm:text-6xl lg:text-7xl font-black leading-[1.05] uppercase">
-                        КОЛЛЕКЦИЯ<br>
-                        <span class="text-steelGray">«НАСЛЕДИЕ»</span>
-                    </h1>
-                    <p class="mt-7 max-w-xl text-xs sm:text-sm text-steelGray font-light leading-relaxed">
-                        Выверенные силуэты, благородные фактуры и глубокий оттенок бордо. Каждая вещь создана, чтобы говорить о вашем стиле без лишних слов.
+    <main class="pt-[72px]">
+        <section class="max-w-7xl mx-auto px-6 lg:px-8 pt-9 pb-12">
+
+            <div class="flex flex-wrap items-end justify-between gap-6">
+                <h1 class="font-header text-2xl font-black uppercase tracking-[0.12em]">КОЛЛЕКЦИЯ</h1>
+                {% if current_store %}
+                    <p class="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-steelGray">
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                        {{ current_store.name }} · {{ current_store.address }}
                     </p>
-                    <a href="#catalog" class="inline-flex items-center gap-4 mt-9 text-[10px] tracking-[0.25em] uppercase font-bold hover:text-steelGray transition-colors">
-                        Смотреть изделия
-                        <i class="fa-solid fa-arrow-down text-deepBurgundy" aria-hidden="true"></i>
-                    </a>
-                </div>
-                <div class="hidden lg:block absolute right-12 bottom-0 w-64 xl:w-80 opacity-40 pointer-events-none" aria-hidden="true">
-                    <img src="{% get_static_prefix %}PRILOJENIA1/logo/log.png" alt="" class="w-full h-72 xl:h-96 object-cover object-top">
-                </div>
-            </div>
-        </section>
-
-        <section id="catalog" class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-12 py-16 sm:py-20 lg:py-28">
-            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-10 sm:mb-14">
-                <div class="space-y-3">
-                    <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">КАТАЛОГ ИЗДЕЛИЙ</span>
-                    <h2 class="font-header text-2xl sm:text-4xl font-black uppercase tracking-tight">НАЙДИТЕ СВОЙ ОБРАЗ</h2>
-                </div>
-                <div class="flex flex-wrap gap-2 text-[9px] sm:text-[10px] tracking-widest uppercase font-bold" aria-label="Фильтр по категориям">
-                    <button type="button" data-filter="all" aria-pressed="true" class="collection-filter px-4 py-2.5 bg-surface text-white border border-surfaceBorder transition-colors">ВСЕ</button>
-                    <button type="button" data-filter="knit" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ПОЛО И ТРИКОТАЖ</button>
-                    <button type="button" data-filter="pants" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">БРЮКИ</button>
-                    <button type="button" data-filter="outer" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ВЕРХНЯЯ ОДЕЖДА</button>
-                    <button type="button" data-filter="shoes" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ОБУВЬ</button>
-                    <button type="button" data-filter="acc" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">АКСЕССУАРЫ</button>
-                </div>
+                {% endif %}
             </div>
 
-            <div id="collection-grid" class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5 lg:gap-8">
-                {% for product in products %}
-                    <article data-category="{{ product.category }}" class="group bg-surface border border-surfaceBorder p-2 sm:p-4 lg:p-6">
-                        <div class="relative aspect-[4/5] overflow-hidden bg-obsidian border border-surfaceBorder/50">
-                            <img src="{{ product.image }}" alt="{{ product.name }}" loading="lazy" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
-                            {% if product.totalStock == 0 %}
-                                <span class="absolute top-2 left-2 sm:top-4 sm:left-4 bg-deepBurgundy text-white border border-[#b83b4b] px-2 py-1 text-[7px] sm:text-[9px] tracking-widest uppercase font-bold">НЕТ В НАЛИЧИИ</span>
-                            {% endif %}
-                        </div>
-                        <div class="pt-4 sm:pt-6">
-                            <span class="text-[7px] sm:text-[9px] uppercase tracking-[0.18em] text-deepBurgundy font-bold">{{ product.categoryLabel }}</span>
-                            <h3 class="mt-2 font-header text-[11px] sm:text-base font-bold uppercase leading-snug">{{ product.name }}</h3>
-                            <p class="mt-2 min-h-8 text-[8px] sm:text-xs text-steelGray font-light leading-relaxed line-clamp-2">{{ product.desc }}</p>
-                            <div class="mt-4 pt-3 sm:pt-4 border-t border-surfaceBorder/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                <span class="font-header text-[10px] sm:text-sm font-bold">{{ product.priceKGS }} сом</span>
-                                <span class="text-[8px] sm:text-[10px] text-steelGray">
-                                    {% if product.totalStock %}
-                                        В наличии: {{ product.totalStock }} шт.
-                                    {% else %}
-                                        Под заказ
-                                    {% endif %}
-                                </span>
+            <div class="mt-6 flex flex-wrap gap-2 text-[9px] tracking-widest uppercase font-bold" aria-label="Фильтр по категориям">
+                <button type="button" data-filter="all" aria-pressed="true" class="collection-filter px-4 py-2.5 bg-surface text-white border border-surfaceBorder transition-colors">ВСЕ</button>
+                <button type="button" data-filter="knit" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ПОЛО И ТРИКОТАЖ</button>
+                <button type="button" data-filter="pants" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">БРЮКИ</button>
+                <button type="button" data-filter="outer" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ВЕРХНЯЯ ОДЕЖДА</button>
+                <button type="button" data-filter="shoes" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ОБУВЬ</button>
+                <button type="button" data-filter="acc" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">АКСЕССУАРЫ</button>
+            </div>
+
+            <div id="collection-grid" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+                {% for item in catalog %}
+                    <article data-category="{{ item.product.category }}" class="border border-surfaceBorder bg-surface p-4">
+                        <a href="{% url 'product_detail' item.product.pk %}" class="block overflow-hidden">
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" loading="lazy"
+                                 class="w-full h-[260px] object-cover transition-transform duration-700 hover:scale-105">
+                        </a>
+
+                        <div class="mt-4 flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-[8px] uppercase tracking-[0.2em] text-accent">{{ item.product.get_category_display }}</p>
+                                <h2 class="mt-1.5 font-header text-[13px] font-bold uppercase tracking-[0.06em] leading-tight">
+                                    <a href="{% url 'product_detail' item.product.pk %}" class="hover:text-accent transition-colors">{{ item.product.name }}</a>
+                                </h2>
+                                {% if item.product.sku %}
+                                    <p class="mt-1 text-[9px] tracking-[0.16em] text-steelGray">{{ item.product.sku }}</p>
+                                {% endif %}
                             </div>
-                            {% if product.material or product.color %}
-                                <p class="mt-3 text-[8px] sm:text-[10px] text-steelGray">
-                                    {% if product.material %}{{ product.material }}{% endif %}{% if product.material and product.color %} · {% endif %}{% if product.color %}{{ product.color }}{% endif %}
-                                </p>
-                            {% endif %}
+                            <p class="font-header text-[13px] font-bold whitespace-nowrap">{{ item.product.price_label }} сом</p>
                         </div>
+
+                        <div class="mt-4 flex flex-wrap items-center gap-1.5">
+                            {% for entry in item.size_run %}
+                                {% if entry.here %}
+                                    <span class="w-9 h-9 rounded-full bg-obsidian border border-surfaceBorder flex flex-col items-center justify-center leading-none">
+                                        <span class="font-header text-[10px]">{{ entry.size }}</span>
+                                        <span class="text-[8px] text-steelGray mt-0.5">{{ entry.here }}</span>
+                                    </span>
+                                {% else %}
+                                    <span class="w-9 h-9 flex items-center justify-center">
+                                        <span class="font-header text-[10px] text-steelGray line-through">{{ entry.size }}</span>
+                                    </span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        {% if item.other_stores %}
+                            <button type="button" data-availability-toggle aria-expanded="false"
+                                    class="mt-4 w-full h-9 border border-surfaceBorder flex items-center justify-center gap-2 text-[9px] uppercase tracking-[0.14em] text-accent hover:border-accent transition-colors">
+                                Посмотреть наличие в другой точке
+                                <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
+                            </button>
+
+                            <div data-availability-panel class="hidden">
+                                {% for other in item.other_stores %}
+                                    <div class="mt-2 border border-surfaceBorder bg-obsidian p-3">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <p class="flex items-center gap-1.5 text-[8px] uppercase tracking-[0.16em] text-white">
+                                                <i class="fa-solid fa-map-marker-alt text-[10px]" aria-hidden="true"></i>
+                                                {{ other.store.name }} · {{ other.store.address }}
+                                            </p>
+                                            {% if forloop.first %}
+                                                <button type="button" data-availability-close class="text-[8px] uppercase tracking-[0.14em] text-steelGray hover:text-white transition-colors">Скрыть</button>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                                            {% for stock in other.sizes %}
+                                                {% if stock.quantity %}
+                                                    <span class="w-9 h-9 rounded-full bg-obsidian border border-accent flex flex-col items-center justify-center leading-none">
+                                                        <span class="font-header text-[10px]">{{ stock.size }}</span>
+                                                        <span class="text-[8px] text-steelGray mt-0.5">{{ stock.quantity }}</span>
+                                                    </span>
+                                                {% else %}
+                                                    <span class="w-9 h-9 flex items-center justify-center">
+                                                        <span class="font-header text-[10px] text-steelGray line-through">{{ stock.size }}</span>
+                                                    </span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        <button type="button"
+                                                data-cart-add="{{ item.product.pk }}"
+                                                data-cart-store="{{ other.store.id }}"
+                                                data-cart-name="{{ item.product.name }}"
+                                                data-cart-price="{{ item.product.price }}"
+                                                data-cart-image="{{ item.product.image.url }}"
+                                                data-cart-sku="{{ item.product.sku|default:'' }}"
+                                                data-cart-limit="{{ other.total }}"
+                                                class="mt-2.5 w-full h-8 bg-accent text-white text-[9px] font-bold uppercase tracking-[0.16em] hover:bg-deepBurgundy-hover transition-colors">
+                                            В корзину из {{ other.store.name }}
+                                        </button>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </article>
                 {% empty %}
-                    <div class="col-span-full border border-surfaceBorder bg-surface/50 p-10 sm:p-16 text-center">
-                        <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">STATUS</span>
-                        <p class="mt-4 font-header text-lg sm:text-2xl font-bold uppercase">Коллекция скоро появится</p>
+                    <div class="sm:col-span-2 lg:col-span-3 border border-surfaceBorder bg-surface/50 p-10 sm:p-16 text-center">
+                        <p class="font-header text-lg sm:text-2xl font-bold uppercase">Коллекция скоро появится</p>
                         <p class="mt-3 text-xs text-steelGray font-light">Мы готовим новые изделия. Загляните сюда чуть позже.</p>
+                        <a href="{% url 'out_of_stock' %}" class="mt-6 inline-block text-[10px] uppercase tracking-[0.2em] text-accent hover:text-white transition-colors">
+                            Смотреть, что распродано
+                        </a>
                     </div>
                 {% endfor %}
             </div>
-            <p id="collection-empty-filter" class="hidden mt-8 text-center text-xs text-steelGray">В этой категории пока нет изделий.</p>
+
+            <p id="collection-empty-filter" class="hidden mt-8 text-center text-xs text-steelGray">В этой категории пока нет изделий в этой точке.</p>
         </section>
     </main>
 
     <footer class="border-t border-surfaceBorder bg-surface/40">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[9px] tracking-[0.18em] uppercase text-steelGray">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[9px] tracking-[0.18em] uppercase text-steelGray">
             <a href="{% url 'home' %}" class="font-header text-lg font-black tracking-[0.3em] text-white">STATUS</a>
-            <span>Бесшумное превосходство</span>
-            <a href="{% url 'home' %}#concierge" class="hover:text-white transition-colors">Персональный сервис</a>
+            <span>{{ product_count }} изделий в коллекции</span>
+            <a href="{% url 'out_of_stock' %}" class="hover:text-white transition-colors">Нет в наличии</a>
         </div>
     </footer>
 
-    <script>
-        const menuButton = document.getElementById('menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
+    {% include "includes/cart_drawer.html" %}
 
-        menuButton.addEventListener('click', () => {
-            const isExpanded = menuButton.getAttribute('aria-expanded') === 'true';
-            menuButton.setAttribute('aria-expanded', String(!isExpanded));
-            mobileMenu.classList.toggle('hidden', isExpanded);
+    <script>
+        document.querySelectorAll('[data-availability-toggle]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const card = button.closest('article');
+                const panel = card.querySelector('[data-availability-panel]');
+                const isOpen = !panel.classList.toggle('hidden');
+                button.setAttribute('aria-expanded', String(isOpen));
+            });
+        });
+
+        document.querySelectorAll('[data-availability-close]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const card = button.closest('article');
+                card.querySelector('[data-availability-panel]').classList.add('hidden');
+                card.querySelector('[data-availability-toggle]').setAttribute('aria-expanded', 'false');
+            });
         });
 
         const filters = document.querySelectorAll('.collection-filter');
-        const productCards = document.querySelectorAll('#collection-grid [data-category]');
+        const cards = document.querySelectorAll('#collection-grid [data-category]');
         const emptyFilterMessage = document.getElementById('collection-empty-filter');
 
         filters.forEach((button) => {
@@ -192,7 +240,7 @@
                     filter.classList.toggle('border-transparent', !isActive);
                 });
 
-                productCards.forEach((card) => {
+                cards.forEach((card) => {
                     const isVisible = category === 'all' || card.dataset.category === category;
                     card.classList.toggle('hidden', !isVisible);
                     if (isVisible) visibleCount += 1;

@@ -1,0 +1,203 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} | STATUS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: '#080808',
+                        surface: '#111111',
+                        surfaceBorder: '#222222',
+                        accent: '#b83b4b',
+                        deepBurgundy: {
+                            DEFAULT: '#5a0f17',
+                            hover: '#7a131e',
+                        },
+                        steelGray: '#999999',
+                    },
+                    fontFamily: {
+                        header: ['"Cinzel"', 'serif'],
+                        sans: ['"Inter"', 'sans-serif'],
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="bg-obsidian text-white font-sans antialiased">
+
+    {% if messages %}
+        <div class="fixed bottom-6 right-6 z-[60] flex flex-col gap-2">
+            {% for message in messages %}
+                <p role="status" class="max-w-sm border border-surfaceBorder bg-surface px-5 py-3 text-xs text-white">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <header class="relative z-40 bg-obsidian/95 border-b border-surfaceBorder backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <a href="{% url 'home' %}" class="flex flex-col shrink-0" aria-label="STATUS — главная">
+                <span class="font-header text-[22px] font-black tracking-[0.4em] uppercase leading-none">STATUS</span>
+                <span class="text-[7px] tracking-[0.55em] text-steelGray font-semibold uppercase mt-1">HAUTE COUTURE</span>
+            </a>
+
+            {% include "includes/store_trigger.html" %}
+
+            <nav class="hidden lg:flex items-center gap-7 text-[10px] tracking-[0.22em] font-semibold uppercase text-steelGray shrink-0">
+                <a href="{% url 'home' %}" class="hover:text-white transition-colors">ГЛАВНАЯ</a>
+                <a href="{% url 'collection' %}" class="hover:text-white transition-colors">КОЛЛЕКЦИЯ</a>
+                <a href="{% url 'out_of_stock' %}" class="hover:text-white transition-colors">НЕТ В НАЛИЧИИ</a>
+            </nav>
+
+            <div class="flex items-center gap-4 text-steelGray shrink-0">
+                <a href="{% url 'collection' %}" class="text-sm hover:text-white transition-colors" aria-label="Каталог"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></a>
+                <button type="button" data-cart-open class="relative text-sm hover:text-white transition-colors" aria-label="Корзина">
+                    <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                    <span id="cart-count-badge" class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 pt-6">
+        <img src="{{ product.image.url }}" alt="{{ product.name }}"
+             class="w-full h-[320px] sm:h-[360px] object-cover border border-surfaceBorder">
+    </div>
+
+    <section class="max-w-7xl mx-auto px-6 lg:px-8 pt-8 pb-16 grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-12 items-start">
+
+        <div>
+            <div class="flex flex-wrap items-center gap-3 text-[9px] uppercase tracking-[0.18em] text-steelGray">
+                <span class="text-accent">{{ product.get_category_display }}</span>
+                {% if product.sku %}<span class="h-3 w-px bg-surfaceBorder" aria-hidden="true"></span><span>{{ product.sku }}</span>{% endif %}
+                {% if product.material %}<span class="h-3 w-px bg-surfaceBorder" aria-hidden="true"></span><span>{{ product.material }}{% if product.color %}, {{ product.color }}{% endif %}</span>{% endif %}
+            </div>
+
+            <h1 class="mt-3 font-header text-2xl sm:text-3xl font-black uppercase tracking-[0.06em] leading-none">{{ product.name }}</h1>
+            <p class="mt-4 font-header text-xl font-bold">{{ product.price_label }} сом</p>
+
+            {% if current_store %}
+                <div class="mt-6 flex flex-wrap items-center justify-between gap-4 text-[9px] uppercase tracking-[0.18em]">
+                    <span class="flex items-center gap-2 text-white">
+                        <i class="fa-solid fa-map-marker-alt text-[12px]" aria-hidden="true"></i>
+                        {{ current_store.name }} · {{ current_store.address }}
+                    </span>
+                    <span class="text-steelGray">
+                        {% if availability.total_stock %}в наличии {{ availability.total_stock }} шт.{% else %}нулевой остаток{% endif %}
+                    </span>
+                </div>
+
+                <div class="mt-2 border-t border-surfaceBorder">
+                    {% for entry in availability.size_run %}
+                        <div class="h-12 flex items-center justify-between gap-4 border-b border-surfaceBorder text-[11px]">
+                            <span class="font-header tracking-[0.12em]">{{ entry.size }}</span>
+                            {% if entry.here %}
+                                <span class="text-steelGray">{{ entry.here }} шт. в {{ current_store.name }}</span>
+                            {% else %}
+                                <span class="text-steelGray">нет в {{ current_store.name }}</span>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <div class="h-12 flex items-center border-b border-surfaceBorder text-[11px] text-steelGray">
+                            Остатки не заведены
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if availability.other_stores %}
+                <a href="#reserve-block"
+                   class="mt-5 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-accent hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-right text-[11px]" aria-hidden="true"></i>
+                    Посмотреть наличие в другой точке
+                </a>
+            {% endif %}
+
+            <p class="mt-6 max-w-xl text-xs text-steelGray font-light leading-relaxed">{{ product.description }}</p>
+        </div>
+
+        <div id="reserve-block">
+            {% if availability.other_stores %}
+                {% for other in availability.other_stores %}
+                    <div class="border border-surfaceBorder bg-surface">
+                        <div class="px-6 h-12 flex items-center justify-between gap-4 border-b border-surfaceBorder">
+                            <p class="font-header text-[11px] font-bold uppercase tracking-[0.16em] text-white">{{ other.store.name }} · {{ other.store.address }}</p>
+                            <span class="text-[9px] uppercase tracking-[0.14em] text-steelGray">{{ other.total }} шт.</span>
+                        </div>
+
+                        <div class="px-6 py-5">
+                            <p class="text-[9px] uppercase tracking-[0.2em] text-steelGray">Размеры в этой точке</p>
+                            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                {% for stock in other.sizes %}
+                                    {% if stock.quantity %}
+                                        <span class="w-10 h-10 rounded-full bg-obsidian border border-accent flex flex-col items-center justify-center leading-none">
+                                            <span class="font-header text-[11px]">{{ stock.size }}</span>
+                                            <span class="text-[8px] text-steelGray mt-0.5">{{ stock.quantity }}</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="w-10 h-10 flex items-center justify-center">
+                                            <span class="font-header text-[11px] text-steelGray line-through">{{ stock.size }}</span>
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            <div class="mt-5 flex items-end justify-between gap-4">
+                                <div>
+                                    <p class="text-[9px] uppercase tracking-[0.2em] text-steelGray">Цена</p>
+                                    <p class="mt-2 font-header text-xl font-bold">{{ product.price_label }} сом</p>
+                                </div>
+                                <p class="text-right text-[10px] text-steelGray">
+                                    Забрать: {{ other.store.address }}<br>{{ other.store.working_hours }}
+                                </p>
+                            </div>
+
+                            <button type="button"
+                                    data-cart-add="{{ product.pk }}"
+                                    data-cart-store="{{ other.store.id }}"
+                                    data-cart-name="{{ product.name }}"
+                                    data-cart-price="{{ product.price }}"
+                                    data-cart-image="{{ product.image.url }}"
+                                    data-cart-sku="{{ product.sku|default:'' }}"
+                                    data-cart-limit="{{ other.total }}"
+                                    class="mt-5 w-full h-11 bg-accent text-white text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-deepBurgundy-hover transition-colors">
+                                В корзину из {{ other.store.name }}
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="border border-surfaceBorder bg-surface px-6 py-8 text-center">
+                    <p class="font-header text-sm font-bold uppercase tracking-[0.14em]">Распродано во всех точках</p>
+                    <p class="mt-3 text-[11px] text-steelGray">Следите за поступлением или запросите пошив по меркам.</p>
+                    <a href="{% url 'out_of_stock' %}"
+                       class="mt-5 inline-flex h-10 items-center justify-center px-5 border border-accent text-[9px] font-bold uppercase tracking-[0.18em] text-white hover:bg-deepBurgundy transition-colors">
+                        Запросить в ателье
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+
+    </section>
+
+    <footer class="border-t border-surfaceBorder bg-surface/40">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[9px] tracking-[0.18em] uppercase text-steelGray">
+            <a href="{% url 'home' %}" class="font-header text-lg font-black tracking-[0.3em] text-white">STATUS</a>
+            <a href="{% url 'collection' %}" class="hover:text-white transition-colors">Вся коллекция</a>
+            <a href="{% url 'out_of_stock' %}" class="hover:text-white transition-colors">Нет в наличии</a>
+        </div>
+    </footer>
+
+    {% include "includes/cart_drawer.html" %}
+</body>
+</html>

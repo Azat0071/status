@@ -1,0 +1,36 @@
+{% comment %}
+Переключатель точек продаж в шапке: две равноправные таблички.
+Ожидает в контексте: stores, current_store.
+compact=True — только названия, без адресов (для плотной шапки).
+{% endcomment %}
+{% if stores %}
+    <form method="post" action="{% url 'select_store' %}" role="group" aria-label="Точка самовывоза"
+          class="flex items-center gap-1 p-1 bg-surface border border-surfaceBorder rounded-full whitespace-nowrap">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% for point in stores %}
+            {% if point.pk == current_store.pk %}
+                <span aria-current="true" class="flex items-center gap-2 h-10 px-3 {% if not compact %}pr-4{% endif %} rounded-full bg-deepBurgundy">
+                    <i class="fa-solid fa-map-marker-alt text-[13px] text-white" aria-hidden="true"></i>
+                    <span class="flex flex-col items-start leading-none">
+                        <span class="font-header text-[10px] font-bold uppercase tracking-[0.14em] text-white">{{ point.name }}</span>
+                        {% if not compact %}
+                            <span class="text-[8px] text-white mt-1">{{ point.address }}</span>
+                        {% endif %}
+                    </span>
+                </span>
+            {% else %}
+                <button type="submit" name="store" value="{{ point.id }}"
+                        class="flex items-center gap-2 h-10 px-3 {% if not compact %}pr-4{% endif %} rounded-full hover:bg-obsidian transition-colors">
+                    <i class="fa-solid fa-map-marker-alt text-[13px] text-steelGray" aria-hidden="true"></i>
+                    <span class="flex flex-col items-start leading-none">
+                        <span class="font-header text-[10px] font-bold uppercase tracking-[0.14em] text-steelGray">{{ point.name }}</span>
+                        {% if not compact %}
+                            <span class="text-[8px] text-steelGray mt-1">{{ point.address }}</span>
+                        {% endif %}
+                    </span>
+                </button>
+            {% endif %}
+        {% endfor %}
+    </form>
+{% endif %}

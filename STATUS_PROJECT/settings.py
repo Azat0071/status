@@ -41,7 +41,8 @@ def _get_allowed_hosts(environ=None):
     return hosts
 
 
-ALLOWED_HOSTS = _get_allowed_hosts()
+ALLOWED_HOSTS = ['*']
+
 
 
 # Application definition
@@ -62,6 +63,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'PRILOJENIA1.middleware.CurrentStoreMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -81,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'PRILOJENIA1.context_processors.store_context',
             ],
         },
     },
@@ -219,6 +222,16 @@ UNFOLD = {
                         "title": "Заказы",
                         "icon": "receipt_long",
                         "link": "/admin/PRILOJENIA1/order/",
+                    },
+                    {
+                        "title": "Точки продаж",
+                        "icon": "storefront",
+                        "link": "/admin/PRILOJENIA1/store/",
+                    },
+                    {
+                        "title": "Запросы в ателье",
+                        "icon": "mark_email_unread",
+                        "link": "/admin/PRILOJENIA1/restockrequest/",
                     },
                 ],
             },

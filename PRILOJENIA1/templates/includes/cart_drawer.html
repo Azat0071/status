@@ -1,0 +1,155 @@
+{% load static %}
+{% comment %}
+Корзина и заказы покупателя. Логика — PRILOJENIA1/js/cart.js (window.STATUS_CART).
+Строки группируются по точке самовывоза, остатки проверяются на /cart/validate/.
+{% endcomment %}
+
+<div id="cart-drawer-bg" data-cart-close
+     class="fixed inset-0 bg-black/85 z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+<aside id="cart-drawer" aria-label="Корзина"
+       class="fixed top-0 right-0 h-full w-full max-w-md bg-obsidian border-l border-surfaceBorder z-50 translate-x-full transition-transform duration-300 flex flex-col">
+
+    <div class="px-6 pt-6 border-b border-surfaceBorder">
+        <div class="pb-5 flex justify-between items-center">
+            <span class="font-header text-lg font-extrabold tracking-[0.2em] uppercase">Покупки</span>
+            <button type="button" data-cart-close class="text-steelGray hover:text-white text-lg transition-colors" aria-label="Закрыть корзину">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div role="tablist" aria-label="Корзина и заказы" class="grid grid-cols-2 gap-2">
+            <button id="cart-tab-button" type="button" role="tab" aria-selected="true" aria-controls="cart-panel"
+                    class="border-b-2 border-deepBurgundy py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                Корзина <span id="cart-count-header">(0)</span>
+            </button>
+            <button id="orders-tab-button" type="button" role="tab" aria-selected="false" aria-controls="orders-panel"
+                    class="border-b-2 border-transparent py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-steelGray hover:text-white transition-colors">
+                Мои заказы ({{ customer_orders|length }})
+            </button>
+        </div>
+    </div>
+
+    <div id="cart-panel" role="tabpanel" aria-labelledby="cart-tab-button" class="flex-1 overflow-y-auto">
+        <p id="cart-empty" class="px-6 py-20 text-center">
+            <span class="block font-header text-sm font-bold uppercase tracking-widest text-white">Корзина пуста</span>
+            <span class="mt-2 block text-xs font-light text-steelGray">Выберите изделия в коллекции</span>
+        </p>
+        <div id="cart-groups"></div>
+    </div>
+
+    <div id="orders-panel" role="tabpanel" aria-labelledby="orders-tab-button" class="hidden flex-1 overflow-y-auto p-6 space-y-4">
+        {% if request.user.is_authenticated %}
+            {% for order in customer_orders %}
+                <article class="border border-surfaceBorder bg-surface p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h3 class="font-header text-xs font-bold uppercase tracking-wider text-white">Заказ №{{ order.pk }}</h3>
+                            <p class="mt-1 text-[10px] text-steelGray">{{ order.created_at|date:"d.m.Y H:i" }}</p>
+                            {% if order.store %}
+                                <p class="mt-1 text-[10px] text-steelGray">{{ order.store.name }} · {{ order.store.address }}</p>
+                            {% endif %}
+                            {% if order.checkout_group_ids %}
+                                <p class="mt-1 text-[10px] text-steelGray">Оформлен вместе с №{{ order.checkout_group_ids|join:", №" }}</p>
+                            {% endif %}
+                        </div>
+                        <span class="shrink-0 border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider
+                            {% if order.status == 'completed' %}border-green-900 text-green-400
+                            {% elif order.status == 'cancelled' %}border-red-900 text-red-400
+                            {% elif order.status == 'processing' %}border-amber-900 text-amber-400
+                            {% else %}border-deepBurgundy text-[#d46a78]{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+                    <ul class="mt-4 space-y-2 border-t border-surfaceBorder pt-3 text-[11px] text-steelGray">
+                        {% for item in order.items.all %}
+                            <li class="flex justify-between gap-3">
+                                <span>{{ item.product_name }} × {{ item.quantity }}{% if item.sizes %} ({{ item.sizes }}){% endif %}</span>
+                                <span class="shrink-0">{{ item.unit_price }} сом</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="mt-4 flex justify-between gap-3 border-t border-surfaceBorder pt-3 text-xs">
+                        <span class="text-steelGray">{{ order.delivery_address }}</span>
+                        <span class="shrink-0 font-bold text-white">{{ order.total_price }} сом</span>
+                    </div>
+                </article>
+            {% empty %}
+                <div class="py-16 text-center">
+                    <p class="font-header text-sm font-bold uppercase tracking-widest text-white">Заказов пока нет</p>
+                    <p class="mt-2 text-xs text-steelGray">Оформленные покупки появятся здесь.</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="py-16 text-center">
+                <p class="font-header text-sm font-bold uppercase tracking-widest text-white">Войдите, чтобы увидеть заказы</p>
+                <a href="{% url 'login' %}?next=%2F%3Forders%3D1"
+                   class="mt-5 inline-block bg-deepBurgundy px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-deepBurgundy-hover">
+                    Войти в аккаунт
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <div id="cart-footer" class="p-6 border-t border-surfaceBorder bg-surface space-y-4">
+        <div class="flex justify-between items-center">
+            <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-steelGray">Итого</span>
+            <span id="cart-total" class="font-header text-xl font-bold tracking-wider">0 сом</span>
+        </div>
+        <p class="text-[9px] uppercase tracking-[0.2em] text-center text-steelGray border-t border-surfaceBorder/60 pt-3">
+            Самовывоз из точек, где есть товар
+        </p>
+        <button id="cart-checkout" type="button"
+                class="w-full py-4 bg-accent text-white text-xs font-bold uppercase tracking-[0.25em] hover:bg-deepBurgundy-hover transition-colors">
+            Оформить заказ
+        </button>
+    </div>
+</aside>
+
+<div id="checkout-modal" class="fixed inset-0 z-[55] bg-black/90 hidden items-center justify-center p-4">
+    <div class="bg-obsidian border border-surfaceBorder max-w-lg w-full p-8 space-y-5 relative">
+        <button id="checkout-close" type="button" class="absolute top-6 right-6 text-steelGray hover:text-white" aria-label="Закрыть оформление">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <div>
+            <h3 class="font-header text-lg font-extrabold uppercase tracking-wider">Оформление</h3>
+            <p class="mt-2 text-[10px] uppercase tracking-[0.16em] text-steelGray">Каждая точка собирает свой заказ</p>
+        </div>
+        <div id="checkout-summary" class="space-y-3 max-h-56 overflow-y-auto"></div>
+        <div>
+            <label class="block text-[9px] uppercase tracking-widest text-steelGray font-semibold mb-2" for="checkout-address">Адрес доставки</label>
+            <input id="checkout-address" type="text" maxlength="250" value="г. Бишкек"
+                   class="w-full bg-surface border border-surfaceBorder p-3 text-white focus:outline-none focus:border-accent">
+        </div>
+        <p id="checkout-error" role="alert" class="hidden text-xs text-red-400"></p>
+        <button type="button" id="checkout-submit"
+                class="w-full py-4 bg-accent text-white text-xs font-bold uppercase tracking-[0.25em] hover:bg-deepBurgundy-hover transition-colors disabled:opacity-50">
+            Подтвердить
+        </button>
+    </div>
+</div>
+
+<div id="conflict-modal" class="fixed inset-0 z-[60] bg-black/90 hidden items-center justify-center p-4">
+    <div class="bg-obsidian border border-surfaceBorder max-w-lg w-full p-8 space-y-5">
+        <div>
+            <h3 class="font-header text-lg font-extrabold uppercase tracking-wider">Остатки изменились</h3>
+            <p class="mt-2 text-[10px] uppercase tracking-[0.16em] text-steelGray">Пока ничего не списано</p>
+        </div>
+        <div id="conflict-list" class="space-y-3 max-h-64 overflow-y-auto"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button type="button" id="conflict-cancel"
+                    class="py-3 border border-surfaceBorder text-[10px] uppercase tracking-[0.2em] text-white hover:border-steelGray transition-colors">
+                Вернуться в корзину
+            </button>
+            <button type="button" id="conflict-submit"
+                    class="py-3 bg-accent text-white text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-deepBurgundy-hover transition-colors">
+                Оформить без них
+            </button>
+        </div>
+    </div>
+</div>
+
+{{ cart_context|json_script:"cart-context" }}
+<script>
+    window.STATUS_CART_CONTEXT = JSON.parse(document.getElementById('cart-context').textContent);
+</script>
+<script src="{% static 'PRILOJENIA1/js/cart.js' %}"></script>

@@ -8,15 +8,15 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from unfold.admin import ModelAdmin, TabularInline
 
-from .models import Order, OrderItem, Product, ProductSize
+from .models import Order, OrderItem, Product, ProductSize, RestockRequest, Store
 
 
 class ProductSizeInline(TabularInline):
     model = ProductSize
     extra = 2
-    fields = ("size", "quantity")
+    fields = ("store", "size", "quantity")
     verbose_name = "Размер и остаток"
-    verbose_name_plural = "Остатки на складе по размерам"
+    verbose_name_plural = "Остатки по размерам и точкам"
 
 
 @admin.register(Product)
@@ -57,6 +57,31 @@ class ProductAdmin(ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(
             stock_total=Coalesce(Sum("sizes__quantity"), 0)
+        )
+
+
+@admin.register(Store)
+class StoreAdmin(ModelAdmin):
+    list_display = (
+        "name",
+        "address",
+        "city",
+        "phone",
+        "is_default",
+        "is_active",
+        "positions_count",
+    )
+    list_editable = ("is_default", "is_active")
+    list_filter = ("city", "is_active", "is_default")
+    search_fields = ("name", "address", "city", "phone")
+
+    @admin.display(description="Позиций на складе", ordering="positions")
+    def positions_count(self, obj):
+        return obj.positions
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            positions=Coalesce(Sum("sizes__quantity"), 0)
         )
 
 
@@ -168,11 +193,13 @@ class OrderAdmin(ModelAdmin):
         "id",
         "customer_name",
         "customer_phone",
+        "store",
+        "checkout_id",
         "total_price",
         "status",
         "created_at",
     )
-    list_filter = ("status", "created_at")
+    list_filter = ("status", "store", "created_at")
     search_fields = ("customer_name", "customer_phone", "user__email")
     list_editable = ("status",)
     readonly_fields = (
@@ -180,8 +207,26 @@ class OrderAdmin(ModelAdmin):
         "customer_name",
         "customer_phone",
         "delivery_address",
+        "store",
+        "checkout_id",
         "total_price",
         "created_at",
     )
     fields = readonly_fields + ("status",)
     inlines = (OrderItemInline,)
+
+
+@admin.register(RestockRequest)
+class RestockRequestAdmin(ModelAdmin):
+    list_display = (
+        "product",
+        "size",
+        "kind",
+        "phone",
+        "store",
+        "created_at",
+    )
+    list_filter = ("kind", "store", "created_at")
+    search_fields = ("product__name", "phone", "comment")
+    readonly_fields = ("created_at",)
+    fields = ("product", "size", "kind", "phone", "comment", "store", "user", "created_at")
