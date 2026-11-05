@@ -244,3 +244,81 @@ class RestockRequest(models.Model):
 
     def __str__(self):
         return f"{self.product.name} — {self.get_kind_display()}"
+
+
+class StockMovement(models.Model):
+    """Журнал движения товара: продажи, приёмка, возвраты, корректировки."""
+
+    class Kind(models.TextChoices):
+        SALE = "sale", "Продажа"
+        RESTOCK = "restock", "Приёмка товара"
+        RETURN = "return", "Возврат от покупателя"
+        ADJUST = "adjust", "Корректировка"
+
+    stock = models.ForeignKey(
+        ProductSize,
+        on_delete=models.CASCADE,
+        related_name="movements",
+        verbose_name="Остаток",
+    )
+    kind = models.CharField(
+        "Тип операции",
+        max_length=20,
+        choices=Kind.choices,
+    )
+    quantity = models.IntegerField(
+        "Изменение (со знаком)",
+        help_text="Минус — списание, плюс — поступление.",
+    )
+    comment = models.CharField("Комментарий", max_length=200, blank=True)
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_movements",
+        verbose_name="Заказ",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_movements",
+        verbose_name="Кто сделал",
+    )
+    created_at = models.DateTimeField("Когда", auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "движение склада"
+        verbose_name_plural = "движения склада"
+
+    def __str__(self):
+        sign = "+" if self.quantity >= 0 else ""
+        return (
+            f"{self.stock} {sign}{self.quantity} "
+            f"({self.get_kind_display()})"
+        )
+
+    @classmethod
+    def apply(cls, *, stock, kind, quantity, comment="", order=None, user=None):
+        """Меняет остаток и записывает движение одной операцией."""
+        from django.db.models import F
+
+        new_quantity = stock.quantity + quantity
+        if new_quantity < 0:
+            new_quantity = 0
+            quantity = -stock.quantity
+        ProductSize.objects.filter(pk=stock.pk).update(
+            quantity=F("quantity") + quantity
+        )
+        stock.refresh_from_db(fields=("quantity",))
+        return cls.objects.create(
+            stock=stock,
+            kind=kind,
+            quantity=quantity,
+            comment=comment,
+            order=order,
+            created_by=user,
+        )

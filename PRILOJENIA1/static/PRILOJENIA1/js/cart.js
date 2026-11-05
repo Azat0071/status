@@ -337,13 +337,12 @@
     }
 
     function render() {
-        const badge = el('cart-count-badge');
         const headerCount = el('cart-count-header');
         const count = totalCount();
-        if (badge) {
+        document.querySelectorAll('[data-cart-badge]').forEach((badge) => {
             badge.textContent = String(count);
             badge.classList.toggle('hidden', count === 0);
-        }
+        });
         if (headerCount) headerCount.textContent = `(${count})`;
 
         const empty = el('cart-empty');

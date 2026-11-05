@@ -1,5 +1,5 @@
 {% extends "admin/base_site.html" %}
-{% load i18n log admin_filters %}
+{% load i18n log admin_filters mathfilters %}
 
 {% block coltype %}colM{% endblock %}
 {% block bodyclass %}{{ block.super }} dashboard{% endblock %}
@@ -12,25 +12,62 @@
       <h1>Добро пожаловать, {{ user.get_short_name|default:user.username }}</h1>
       <p>Здесь можно управлять ассортиментом и остатками магазина.</p>
     </div>
-    {% url 'admin:PRILOJENIA1_product_add' as add_product_url %}
-    <a class="status-primary-action" href="{{ add_product_url }}">＋ Добавить товар</a>
+    <div class="status-heading-actions">
+      {% url 'admin:PRILOJENIA1_order_changelist' as orders_list_url %}
+      <a class="status-ghost-action" href="{{ orders_list_url }}">Заказы{% if dashboard_orders_new %}<span class="status-badge-new">{{ dashboard_orders_new }}</span>{% endif %}</a>
+      {% url 'admin:PRILOJENIA1_product_add' as add_product_url %}
+      <a class="status-primary-action" href="{{ add_product_url }}">＋ Добавить товар</a>
+    </div>
   </div>
 
   <div class="status-stat-grid">
     <article class="status-stat-card">
+      <span class="status-stat-icon">✦</span>
       <span class="status-stat-label">Всего товаров</span>
       <strong>{{ dashboard_products_count }}</strong>
-      <span class="status-stat-note">в каталоге магазина</span>
+      <span class="status-stat-note">опубликовано: {{ dashboard_active_count }}</span>
     </article>
     <article class="status-stat-card">
-      <span class="status-stat-label">Опубликовано</span>
-      <strong>{{ dashboard_active_count }}</strong>
-      <span class="status-stat-note">видны покупателям</span>
-    </article>
-    <article class="status-stat-card">
+      <span class="status-stat-icon">▤</span>
       <span class="status-stat-label">Остаток на складе</span>
       <strong>{{ dashboard_stock_count }}</strong>
       <span class="status-stat-note">единиц по всем размерам</span>
+    </article>
+    <article class="status-stat-card">
+      <span class="status-stat-icon">✈</span>
+      <span class="status-stat-label">Заказов всего</span>
+      <strong>{{ dashboard_orders_count }}</strong>
+      <span class="status-stat-note">в обработке: {{ dashboard_orders_processing }}</span>
+    </article>
+    <article class="status-stat-card">
+      <span class="status-stat-icon">◉</span>
+      <span class="status-stat-label">Новых заказов</span>
+      <strong>{{ dashboard_orders_new }}</strong>
+      <span class="status-stat-note">оформлено: {{ dashboard_orders_completed }}</span>
+    </article>
+    <article class="status-stat-card">
+      <span class="status-stat-icon">◷</span>
+      <span class="status-stat-label">Заказов сегодня</span>
+      <strong>{{ dashboard_orders_today }}</strong>
+      <span class="status-stat-note">с начала суток</span>
+    </article>
+    <article class="status-stat-card status-stat-card-accent">
+      <span class="status-stat-icon">✧</span>
+      <span class="status-stat-label">Выручка</span>
+      <strong>{{ dashboard_revenue }} сом</strong>
+      <span class="status-stat-note">сегодня: {{ dashboard_revenue_today }} сом</span>
+    </article>
+    <article class="status-stat-card">
+      <span class="status-stat-icon">↗</span>
+      <span class="status-stat-label">Продано единиц</span>
+      <strong>{{ dashboard_sold_total }}</strong>
+      <span class="status-stat-note">списано со склада</span>
+    </article>
+    <article class="status-stat-card {% if dashboard_low_stock_count %}status-stat-card-warning{% endif %}">
+      <span class="status-stat-icon">⚠</span>
+      <span class="status-stat-label">Мало на складе</span>
+      <strong>{{ dashboard_low_stock_count }}</strong>
+      <span class="status-stat-note">позиций ≤ {{ dashboard_low_stock_limit }} шт · нет в наличии: {{ dashboard_out_of_stock_count }}</span>
     </article>
   </div>
 
@@ -56,6 +93,85 @@
         {% endfor %}
       {% endfor %}
     </div>
+  </section>
+
+  <section class="status-panel status-recent-panel">
+    <div class="status-panel-heading">
+      <div>
+        <span class="status-eyebrow">ЗАКАЗЫ</span>
+        <h2>Последние заказы</h2>
+      </div>
+      <a href="{% url 'admin:PRILOJENIA1_order_changelist' %}">Все заказы →</a>
+    </div>
+    {% if dashboard_recent_orders %}
+      <ul class="status-activity-list">
+        {% for order in dashboard_recent_orders %}
+        <li class="status-order-row">
+          <span class="status-order-id">№{{ order.pk }}</span>
+          <span class="status-order-main">
+            <a href="{% url 'admin:PRILOJENIA1_order_change' order.pk %}">{{ order.customer_name }}</a>
+            <small>{{ order.customer_phone }}{% if order.store %} · {{ order.store.name }}{% endif %}</small>
+          </span>
+          <span class="status-order-status status-order-status-{{ order.status }}">{{ order.get_status_display }}</span>
+          <span class="status-order-total">{{ order.total_price }} сом</span>
+          <span class="status-order-date">{{ order.created_at|date:"d.m.Y H:i" }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="status-empty-activity">Заказов пока нет — они появятся здесь после первой покупки.</p>
+    {% endif %}
+  </section>
+
+  <section class="status-panel">
+    <div class="status-panel-heading">
+      <div>
+        <span class="status-eyebrow">СКЛАД</span>
+        <h2>Требуют закупки</h2>
+      </div>
+      <a href="/admin/PRILOJENIA1/productsize/?q=">Весь склад →</a>
+    </div>
+    {% if dashboard_low_stocks %}
+      <ul class="status-activity-list">
+        {% for stock in dashboard_low_stocks %}
+        <li class="status-order-row">
+          <span class="status-order-main">
+            <a href="/admin/PRILOJENIA1/productsize/{{ stock.pk }}/change/">{{ stock.product.name }}</a>
+            <small>{{ stock.store.name }} · размер {{ stock.size }}</small>
+          </span>
+          <span class="status-order-status {% if stock.quantity == 0 %}status-order-status-cancelled{% else %}status-order-status-processing{% endif %}">{% if stock.quantity == 0 %}нет{% else %}{{ stock.quantity }} шт{% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="status-empty-activity">Все позиции в наличии — закупка не требуется.</p>
+    {% endif %}
+  </section>
+
+  <section class="status-panel status-recent-panel">
+    <div class="status-panel-heading">
+      <div>
+        <span class="status-eyebrow">СКЛАД</span>
+        <h2>Движения товара</h2>
+      </div>
+      <a href="/admin/PRILOJENIA1/stockmovement/">Весь журнал →</a>
+    </div>
+    {% if dashboard_recent_movements %}
+      <ul class="status-activity-list">
+        {% for movement in dashboard_recent_movements %}
+        <li class="status-order-row">
+          <span class="status-order-id {% if movement.quantity < 0 %}status-movement-out{% else %}status-movement-in{% endif %}">{% if movement.quantity < 0 %}−{% else %}+{% endif %}{{ movement.quantity|abs }}</span>
+          <span class="status-order-main">
+            <a href="/admin/PRILOJENIA1/product/{{ movement.stock.product_id }}/change/">{{ movement.stock.product.name }}</a>
+            <small>{{ movement.stock.store.name }} · {{ movement.stock.size }} · {{ movement.get_kind_display|lower }}</small>
+          </span>
+          <span class="status-order-date">{{ movement.created_at|date:"d.m H:i" }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="status-empty-activity">Движений пока не было.</p>
+    {% endif %}
   </section>
 
   <section class="status-panel status-recent-panel">
@@ -94,11 +210,20 @@
   .status-dashboard-heading h1 { margin: 8px 0; font-size: 27px !important; }
   .status-dashboard-heading p { margin: 0; color: #71696a; font-size: 13px; }
   .status-eyebrow { color:#761e2a; font-size:9px; font-weight:700; letter-spacing:.19em; }
-  .status-primary-action { flex:0 0 auto; padding:12px 16px; border-radius:4px; background:#761e2a; color:#fff !important; font-size:12px; font-weight:700; text-decoration:none; }
+  .status-heading-actions { display:flex; align-items:center; gap:10px; flex:0 0 auto; }
+  .status-ghost-action { display:inline-flex; align-items:center; gap:7px; padding:11px 14px; border:1px solid #ddd5d4; border-radius:4px; color:#413a3b !important; font-size:12px; font-weight:700; text-decoration:none; background:#fff; }
+  .status-ghost-action:hover { border-color:#c9a5a7; color:#761e2a !important; }
+  .status-badge-new { min-width:18px; padding:1px 5px; border-radius:999px; background:#761e2a; color:#fff; font-size:9px; text-align:center; }
+  .status-primary-action { padding:12px 16px; border-radius:4px; background:#761e2a; color:#fff !important; font-size:12px; font-weight:700; text-decoration:none; box-shadow:0 3px 10px #761e2a2e; }
   .status-primary-action:hover { background:#55131d; }
   .status-stat-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-bottom:24px; }
   .status-stat-card, .status-panel { border:1px solid #e8e2e1; border-radius:7px; background:#fff; box-shadow:0 4px 18px #211d1e08; }
-  .status-stat-card { display:flex; min-height:120px; flex-direction:column; justify-content:center; padding:20px 22px; }
+  .status-stat-card { display:flex; min-height:120px; flex-direction:column; justify-content:center; padding:20px 22px; border-top:3px solid #761e2a; }
+  .status-stat-card-accent { border-top-color:#c9a5a7; }
+  .status-stat-card-warning { border-top-color:#d8a02a; }
+  .status-movement-out { color:#a92f40; }
+  .status-movement-in { color:#2e7a3a; }
+  .status-stat-icon { color:#761e2a; font-size:14px; margin-bottom:2px; }
   .status-stat-label { color:#71696a; font-size:11px; }
   .status-stat-card strong { margin:6px 0 2px; color:#211d1e; font-size:30px; line-height:1.1; }
   .status-stat-note { color:#938b8b; font-size:10px; }
@@ -117,6 +242,17 @@
   .status-activity-list { margin:0; padding:0; list-style:none; }
   .status-activity-list li { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid #f0ebea; color:#71696a; font-size:11px; }
   .status-activity-list a { color:#761e2a; }
+  .status-order-row { gap:14px; }
+  .status-order-id { flex:0 0 auto; font-weight:700; color:#211d1e; min-width:52px; }
+  .status-order-main { display:flex; flex-direction:column; min-width:0; }
+  .status-order-main small { color:#938b8b; font-size:9px; margin-top:2px; }
+  .status-order-status { flex:0 0 auto; padding:3px 9px; border-radius:999px; font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; border:1px solid #e8e2e1; color:#71696a; }
+  .status-order-status-new { background:#fdf2f3; border-color:#f0cdd3; color:#a92f40; }
+  .status-order-status-processing { background:#fff8e8; border-color:#f0e0b0; color:#9a6a10; }
+  .status-order-status-completed { background:#edf7ee; border-color:#c4e2c8; color:#2e7a3a; }
+  .status-order-status-cancelled { background:#f7eded; border-color:#e8c4c4; color:#a12631; }
+  .status-order-total { flex:0 0 auto; margin-left:auto; font-weight:700; color:#211d1e; }
+  .status-order-date { flex:0 0 auto; color:#938b8b; font-size:10px; }
   .status-activity-dot { width:6px; height:6px; border-radius:50%; background:#8a3943; }
   .status-empty-activity { margin:0; color:#938b8b; font-size:11px; }
   @media(max-width:700px) {
@@ -125,6 +261,8 @@
     .status-stat-card { min-height:90px; }
     .status-model-grid { grid-template-columns:1fr; }
     .status-panel { padding:16px; }
+    .status-order-row { flex-wrap:wrap; row-gap:4px; }
+    .status-order-total { margin-left:0; }
   }
 </style>
 {% endblock %}

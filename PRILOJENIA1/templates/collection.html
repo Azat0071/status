@@ -64,7 +64,7 @@
                 <a href="{% url 'home' %}#catalog" class="text-sm hover:text-white transition-colors" aria-label="Поиск на главной"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></a>
                 <button type="button" data-cart-open class="relative text-sm hover:text-white transition-colors" aria-label="Корзина">
                     <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
-                    <span id="cart-count-badge" class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
+                    <span id="cart-count-badge" data-cart-badge class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
                 </button>
             </div>
         </div>
@@ -83,7 +83,18 @@
                 {% endif %}
             </div>
 
-            <div class="mt-6 flex flex-wrap gap-2 text-[9px] tracking-widest uppercase font-bold" aria-label="Фильтр по категориям">
+            <!-- Поиск одежды прямо в каталоге -->
+            <div class="relative mt-6">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-steelGray text-xs pointer-events-none" aria-hidden="true"></i>
+                <input type="text" id="collection-search" autocomplete="off"
+                       placeholder="ПОИСК ОДЕЖДЫ: ПОЛО, БРЮКИ, ОБУВЬ..."
+                       class="w-full bg-surface border border-surfaceBorder py-3.5 pl-11 pr-12 text-[10px] uppercase tracking-[0.18em] text-white placeholder-steelGray focus:outline-none focus:border-accent transition-colors">
+                <button type="button" id="collection-search-clear" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-steelGray hover:text-white transition-colors" aria-label="Очистить поиск">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 flex flex-wrap gap-2 text-[9px] tracking-widest uppercase font-bold" aria-label="Фильтр по категориям">
                 <button type="button" data-filter="all" aria-pressed="true" class="collection-filter px-4 py-2.5 bg-surface text-white border border-surfaceBorder transition-colors">ВСЕ</button>
                 <button type="button" data-filter="knit" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">ПОЛО И ТРИКОТАЖ</button>
                 <button type="button" data-filter="pants" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">БРЮКИ</button>
@@ -203,6 +214,11 @@
 
     {% include "includes/cart_drawer.html" %}
 
+    <style>
+        body { padding-bottom: 4rem; }
+        @media (min-width: 768px) { body { padding-bottom: 0; } }
+    </style>
+
     <script>
         document.querySelectorAll('[data-availability-toggle]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -242,13 +258,74 @@
 
                 cards.forEach((card) => {
                     const isVisible = category === 'all' || card.dataset.category === category;
-                    card.classList.toggle('hidden', !isVisible);
-                    if (isVisible) visibleCount += 1;
+                    card.classList.toggle('hidden', !isVisible || !matchesSearch(card));
+                    if (isVisible && matchesSearch(card)) visibleCount += 1;
                 });
 
                 emptyFilterMessage.classList.toggle('hidden', visibleCount > 0);
             });
         });
+
+        // Поиск одежды прямо в каталоге
+        const searchInput = document.getElementById('collection-search');
+        const searchClear = document.getElementById('collection-search-clear');
+
+        function cardText(card) {
+            return card.textContent.toLowerCase();
+        }
+
+        function matchesSearch(card) {
+            const query = (searchInput && searchInput.value || '').trim().toLowerCase();
+            if (!query) return true;
+            return cardText(card).includes(query);
+        }
+
+        function applySearch() {
+            if (searchClear) searchClear.classList.toggle('hidden', !(searchInput && searchInput.value.trim()));
+            const activeFilter = document.querySelector('.collection-filter[aria-pressed="true"]');
+            if (activeFilter) activeFilter.click();
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applySearch);
+        }
+        if (searchClear) {
+            searchClear.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                applySearch();
+            });
+        }
     </script>
 </body>
+    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ГЛАВНАЯ / ПОИСК / КОРЗИНА / ПРОФИЛЬ -->
+    <nav class="fixed bottom-0 left-0 w-full z-40 md:hidden bg-obsidian/95 border-t border-surfaceBorder backdrop-blur-md">
+        <div class="grid grid-cols-4 h-16 text-[9px] uppercase tracking-[0.14em] font-bold text-steelGray">
+            <a href="{% url 'home' %}" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                <i class="fa-solid fa-house text-base" aria-hidden="true"></i>
+                <span>ГЛАВНАЯ</span>
+            </a>
+            <a href="{% url 'collection' %}" class="flex flex-col items-center justify-center gap-1 text-accent" aria-current="page">
+                <i class="fa-solid fa-shirt text-base" aria-hidden="true"></i>
+                <span>КАТАЛОГ</span>
+            </a>
+            <button type="button" data-cart-open class="relative flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                <span class="relative">
+                    <i class="fa-solid fa-bag-shopping text-base" aria-hidden="true"></i>
+                    <span id="cart-count-badge-mobile" data-cart-badge class="absolute -top-1.5 -right-2.5 w-4 h-4 bg-accent text-white text-[8px] font-bold flex items-center justify-center hidden">0</span>
+                </span>
+                <span>КОРЗИНА</span>
+            </button>
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'customer_profile' %}" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                    <i class="fa-solid fa-user text-base" aria-hidden="true"></i>
+                    <span>ПРОФИЛЬ</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                    <i class="fa-solid fa-user text-base" aria-hidden="true"></i>
+                    <span>ПРОФИЛЬ</span>
+                </a>
+            {% endif %}
+        </div>
+    </nav>
 </html>

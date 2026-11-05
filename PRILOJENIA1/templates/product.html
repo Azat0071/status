@@ -63,7 +63,7 @@
                 <a href="{% url 'collection' %}" class="text-sm hover:text-white transition-colors" aria-label="Каталог"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></a>
                 <button type="button" data-cart-open class="relative text-sm hover:text-white transition-colors" aria-label="Корзина">
                     <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
-                    <span id="cart-count-badge" class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
+                    <span id="cart-count-badge" data-cart-badge class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
                 </button>
             </div>
         </div>
@@ -199,5 +199,40 @@
     </footer>
 
     {% include "includes/cart_drawer.html" %}
+    <style>
+        body { padding-bottom: 4rem; }
+        @media (min-width: 768px) { body { padding-bottom: 0; } }
+    </style>
 </body>
+    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ГЛАВНАЯ / КАТАЛОГ / КОРЗИНА / ПРОФИЛЬ -->
+    <nav class="fixed bottom-0 left-0 w-full z-40 md:hidden bg-obsidian/95 border-t border-surfaceBorder backdrop-blur-md">
+        <div class="grid grid-cols-4 h-16 text-[9px] uppercase tracking-[0.14em] font-bold text-steelGray">
+            <a href="{% url 'home' %}" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                <i class="fa-solid fa-house text-base" aria-hidden="true"></i>
+                <span>ГЛАВНАЯ</span>
+            </a>
+            <a href="{% url 'collection' %}" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                <i class="fa-solid fa-shirt text-base" aria-hidden="true"></i>
+                <span>КАТАЛОГ</span>
+            </a>
+            <button type="button" data-cart-open class="relative flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                <span class="relative">
+                    <i class="fa-solid fa-bag-shopping text-base" aria-hidden="true"></i>
+                    <span id="cart-count-badge-mobile" data-cart-badge class="absolute -top-1.5 -right-2.5 w-4 h-4 bg-accent text-white text-[8px] font-bold flex items-center justify-center hidden">0</span>
+                </span>
+                <span>КОРЗИНА</span>
+            </button>
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'customer_profile' %}" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                    <i class="fa-solid fa-user text-base" aria-hidden="true"></i>
+                    <span>ПРОФИЛЬ</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
+                    <i class="fa-solid fa-user text-base" aria-hidden="true"></i>
+                    <span>ПРОФИЛЬ</span>
+                </a>
+            {% endif %}
+        </div>
+    </nav>
 </html>

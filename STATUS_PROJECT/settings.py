@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'PRILOJENIA1',
+    'mathfilters',
 ]
 
 MIDDLEWARE = [
@@ -222,6 +223,16 @@ UNFOLD = {
                         "title": "Заказы",
                         "icon": "receipt_long",
                         "link": "/admin/PRILOJENIA1/order/",
+                    },
+                    {
+                        "title": "Склад (остатки)",
+                        "icon": "warehouse",
+                        "link": "/admin/PRILOJENIA1/productsize/",
+                    },
+                    {
+                        "title": "Журнал склада",
+                        "icon": "swap_vert",
+                        "link": "/admin/PRILOJENIA1/stockmovement/",
                     },
                     {
                         "title": "Точки продаж",

@@ -72,12 +72,34 @@
         }
 
         .fade-in {
-            animation: fadeIn 0.35s ease-in-out forwards;
+            animation: fadeIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Плавное появление блоков при прокрутке */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Мобильная нижняя панель навигации */
+        .bottom-nav-item {
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .bottom-nav-item:hover,
+        .bottom-nav-item:active {
+            color: #FFFFFF;
         }
 
         svg {
@@ -86,7 +108,7 @@
         }
     </style>
 </head>
-<body class="antialiased selection:bg-deepBurgundy selection:text-white">
+<body class="antialiased selection:bg-deepBurgundy selection:text-white pb-16 md:pb-0">
 
     <!-- TOAST NOTIFICATION -->
     <div id="toast" class="fixed bottom-8 right-8 z-50 bg-surface border border-surfaceBorder px-6 py-4 rounded-none shadow-2xl flex items-center space-x-4 opacity-0 pointer-events-none translate-y-4 transition-all duration-300">
@@ -180,7 +202,7 @@
 
                 <button type="button" data-cart-open class="hover:text-white transition-colors text-steelGray text-sm relative" aria-label="Корзина">
                     <i class="fa-solid fa-bag-shopping"></i>
-                    <span id="cart-count-badge" class="absolute -top-2 -right-2 w-4 h-4 bg-deepBurgundy text-white text-[9px] font-bold flex items-center justify-center hidden">0</span>
+                    <span id="cart-count-badge" data-cart-badge class="absolute -top-2 -right-2 w-4 h-4 bg-deepBurgundy text-white text-[9px] font-bold flex items-center justify-center hidden">0</span>
                 </button>
 
                 <button id="menu-btn" class="md:hidden text-lg text-white" aria-label="Меню">
@@ -262,7 +284,7 @@
     <!-- PRODUCT CATALOG -->
     <section id="catalog" class="py-16 sm:py-20 lg:py-28 px-3 sm:px-6 lg:px-12 max-w-7xl mx-auto border-b border-surfaceBorder">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-16 gap-6">
-            <div class="space-y-3">
+            <div class="space-y-3 reveal">
                 <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">КАТАЛОГ ИЗДЕЛИЙ</span>
                 <h2 class="font-header text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">КАТАЛОГ</h2>
             </div>
@@ -278,6 +300,17 @@
             </div>
         </div>
 
+        <!-- Поиск одежды прямо в каталоге -->
+        <div class="relative mb-8 sm:mb-12 reveal">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-steelGray text-xs pointer-events-none"></i>
+            <input type="text" id="catalog-search" oninput="handleCatalogSearch(this.value)" autocomplete="off"
+                   placeholder="ПОИСК ОДЕЖДЫ: ПОЛО, БРЮКИ, КРОССОВКИ..."
+                   class="w-full bg-surface border border-surfaceBorder py-4 pl-11 pr-12 text-[11px] uppercase tracking-[0.2em] text-white placeholder-steelGray focus:outline-none focus:border-deepBurgundy transition-colors">
+            <button type="button" id="catalog-search-clear" onclick="clearCatalogSearch()" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-steelGray hover:text-white transition-colors" aria-label="Очистить поиск">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
         <!-- Dynamic Product Grid -->
         <div id="product-grid" class="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-8">
             <!-- Populated via Javascript -->
@@ -286,7 +319,7 @@
 
     <!-- INTERACTIVE LOOKBOOK / CAPSULE BUILDER -->
     <section id="lookbook" class="py-28 px-6 lg:px-12 max-w-7xl mx-auto border-b border-surfaceBorder bg-surface/30">
-        <div class="max-w-2xl mx-auto text-center space-y-4 mb-16">
+        <div class="max-w-2xl mx-auto text-center space-y-4 mb-16 reveal">
             <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">ИНТЕРАКТИВНЫЙ КОНСТРУКТОР</span>
             <h2 class="font-header text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">СОБЕРИТЕ СВОЙ ОБРАЗ</h2>
             <p class="text-steelGray text-xs font-light leading-relaxed">
@@ -322,7 +355,7 @@
     <!-- BRAND PHILOSOPHY -->
     <section id="philosophy" class="py-28 px-6 lg:px-12 max-w-7xl mx-auto border-b border-surfaceBorder">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div class="space-y-4">
+            <div class="space-y-4 reveal">
                 <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">01 / МАТЕРИАЛЫ</span>
                 <h3 class="font-header text-xl text-white font-extrabold uppercase">ПРЕМИАЛЬНЫЙ ТРИКОТАЖ</h3>
                 <p class="text-xs text-steelGray font-light leading-relaxed">
@@ -330,7 +363,7 @@
                 </p>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-4 reveal">
                 <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">02 / АТЕЛЬЕ</span>
                 <h3 class="font-header text-xl text-white font-extrabold uppercase">ПОРТНОВСКОЕ МАСТЕРСТВО</h3>
                 <p class="text-xs text-steelGray font-light leading-relaxed">
@@ -338,7 +371,7 @@
                 </p>
             </div>
 
-            <div class="space-y-4">
+            <div class="space-y-4 reveal">
                 <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">03 / ЭКСКЛЮЗИВ</span>
                 <h3 class="font-header text-xl text-white font-extrabold uppercase">ОГРАНИЧЕННАЯ СЕРИЯ</h3>
                 <p class="text-xs text-steelGray font-light leading-relaxed">
@@ -373,6 +406,18 @@
                 <p><a href="#" class="hover:text-white transition-colors">Закрытый клуб клиентов</a></p>
             </div>
 
+        <!-- Соцсети и контакты -->
+        <div class="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col sm:flex-row justify-between items-center gap-6 mb-10">
+            <div class="flex items-center gap-4 text-sm">
+                <a href="#" aria-label="Telegram" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-telegram"></i></a>
+                <a href="#" aria-label="Instagram" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#" aria-label="WhatsApp" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-whatsapp"></i></a>
+                <a href="#" aria-label="TikTok" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+            </div>
+            <div class="flex items-center gap-6 text-[10px] uppercase tracking-[0.2em] text-steelGray">
+                <a href="tel:+996700000000" class="hover:text-white transition-colors"><i class="fa-solid fa-phone mr-2"></i>+996 700 000 000</a>
+                <a href="mailto:hello@status.kg" class="hover:text-white transition-colors"><i class="fa-solid fa-envelope mr-2"></i>hello@status.kg</a>
+            </div>
         </div>
 
         <div class="max-w-7xl mx-auto px-6 lg:px-12 pt-8 border-t border-surfaceBorder flex flex-col sm:flex-row justify-between items-center text-[10px]">
@@ -382,6 +427,38 @@
     </footer>
 
     {{ products|json_script:"products-data" }}
+
+    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ГЛАВНАЯ / ПОИСК / КОРЗИНА / ПРОФИЛЬ -->
+    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 w-full z-40 md:hidden bg-obsidian/95 border-t border-surfaceBorder backdrop-blur-md">
+        <div class="grid grid-cols-4 h-16 text-[9px] uppercase tracking-[0.14em] font-bold text-steelGray">
+            <a href="#home" class="bottom-nav-item flex flex-col items-center justify-center gap-1">
+                <i class="fa-solid fa-house text-base"></i>
+                <span>ГЛАВНАЯ</span>
+            </a>
+            <button type="button" onclick="toggleSearch(true)" class="bottom-nav-item flex flex-col items-center justify-center gap-1">
+                <i class="fa-solid fa-magnifying-glass text-base"></i>
+                <span>ПОИСК</span>
+            </button>
+            <button type="button" data-cart-open class="bottom-nav-item relative flex flex-col items-center justify-center gap-1">
+                <span class="relative">
+                    <i class="fa-solid fa-bag-shopping text-base"></i>
+                    <span id="cart-count-badge-mobile" data-cart-badge class="absolute -top-1.5 -right-2.5 w-4 h-4 bg-deepBurgundy text-white text-[8px] font-bold flex items-center justify-center hidden">0</span>
+                </span>
+                <span>КОРЗИНА</span>
+            </button>
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'customer_profile' %}" class="bottom-nav-item flex flex-col items-center justify-center gap-1">
+                    <i class="fa-solid fa-user text-base"></i>
+                    <span>ПРОФИЛЬ</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" class="bottom-nav-item flex flex-col items-center justify-center gap-1">
+                    <i class="fa-solid fa-user text-base"></i>
+                    <span>ПРОФИЛЬ</span>
+                </a>
+            {% endif %}
+        </div>
+    </nav>
 
     <!-- JAVASCRIPT APPLICATION LOGIC -->
     <script>
@@ -457,6 +534,40 @@
             `).join('');
         }
 
+        // Поиск прямо в каталоге: фильтрует карточки по названию и описанию
+        let catalogSearchQuery = '';
+        let catalogSearchCategory = 'all';
+
+        function handleCatalogSearch(query) {
+            catalogSearchQuery = query.trim().toLowerCase();
+            const clearBtn = document.getElementById('catalog-search-clear');
+            if (clearBtn) clearBtn.classList.toggle('hidden', !catalogSearchQuery);
+            applyCatalogFilters();
+        }
+
+        function clearCatalogSearch() {
+            const input = document.getElementById('catalog-search');
+            if (input) input.value = '';
+            handleCatalogSearch('');
+        }
+
+        function applyCatalogFilters() {
+            let items = products;
+            if (catalogSearchCategory !== 'all') {
+                items = items.filter(p => p.category === catalogSearchCategory);
+            }
+            if (catalogSearchQuery) {
+                items = items.filter(p =>
+                    (p.name || '').toLowerCase().includes(catalogSearchQuery) ||
+                    (p.desc || '').toLowerCase().includes(catalogSearchQuery) ||
+                    (p.categoryLabel || '').toLowerCase().includes(catalogSearchQuery) ||
+                    (p.material || '').toLowerCase().includes(catalogSearchQuery) ||
+                    (p.color || '').toLowerCase().includes(catalogSearchQuery)
+                );
+            }
+            renderProducts(items);
+        }
+
         // Filter Catalog Products
         function filterCatalog(category) {
             document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -469,11 +580,8 @@
                 activeBtn.classList.remove('text-steelGray', 'border-transparent');
             }
 
-            if(category === 'all') {
-                renderProducts(products);
-            } else {
-                renderProducts(products.filter(p => p.category === category));
-            }
+            catalogSearchCategory = category;
+            applyCatalogFilters();
         }
 
         // Change Currency Action
@@ -654,11 +762,41 @@
             document.getElementById('mobile-menu').classList.toggle('hidden');
         });
 
+        // Плавное появление секций при прокрутке
+        function initReveal() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal').forEach((element) => observer.observe(element));
+        }
+
+        // Закрытие поиска и быстрого просмотра по Escape
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            toggleSearch(false);
+            closeQuickView();
+        });
+
+        // Быстрый просмотр закрывается по клику на фон
+        document.getElementById('quickview-modal').addEventListener('click', (event) => {
+            if (event.target === event.currentTarget) closeQuickView();
+        });
+
+        document.getElementById('search-overlay').addEventListener('click', (event) => {
+            if (event.target === event.currentTarget) toggleSearch(false);
+        });
+
         // Initialize App
         window.onload = function() {
             renderProducts(products);
             renderLookbook();
             updateLookbook();
+            initReveal();
 
             const pageParams = new URLSearchParams(window.location.search);
             if(pageParams.get('orders') === '1') {

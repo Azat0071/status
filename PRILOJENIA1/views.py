@@ -36,6 +36,7 @@ from .models import (
     Product,
     ProductSize,
     RestockRequest,
+    StockMovement,
     Store,
 )
 
@@ -536,8 +537,14 @@ def create_order(request):
                 for stock in sort_sizes(by_pair[(product.pk, store_id)]):
                     taken = min(stock.quantity, remaining)
                     if taken:
-                        stock.quantity -= taken
-                        stock.save(update_fields=("quantity",))
+                        StockMovement.apply(
+                            stock=stock,
+                            kind=StockMovement.Kind.SALE,
+                            quantity=-taken,
+                            comment=f"Заказ №{order.pk}",
+                            order=order,
+                            user=request.user,
+                        )
                         allocations.append(f"{stock.size} × {taken}")
                         remaining -= taken
                     if not remaining:
