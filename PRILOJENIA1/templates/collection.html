@@ -34,7 +34,7 @@
         };
     </script>
 </head>
-<body class="bg-obsidian text-white font-sans antialiased">
+<body class="bg-obsidian pb-28 font-sans text-white antialiased md:pb-0">
 
     {% if messages %}
         <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
@@ -51,7 +51,9 @@
                 <span class="text-[7px] tracking-[0.55em] text-steelGray font-semibold uppercase mt-1">HAUTE COUTURE</span>
             </a>
 
-            {% include "includes/store_plates.html" %}
+            <div class="hidden md:block">
+                {% include "includes/store_plates.html" with compact=True %}
+            </div>
 
             <nav class="hidden lg:flex items-center gap-7 text-[10px] tracking-[0.22em] font-semibold uppercase text-steelGray shrink-0">
                 <a href="{% url 'home' %}" class="hover:text-white transition-colors">ГЛАВНАЯ</a>
@@ -61,7 +63,7 @@
             </nav>
 
             <div class="flex items-center gap-4 text-steelGray shrink-0">
-                <a href="{% url 'home' %}#catalog" class="text-sm hover:text-white transition-colors" aria-label="Поиск на главной"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></a>
+                <a href="#collection-search" class="text-sm hover:text-white transition-colors" aria-label="Поиск в коллекции"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></a>
                 <button type="button" data-cart-open class="relative text-sm hover:text-white transition-colors" aria-label="Корзина">
                     <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
                     <span id="cart-count-badge" data-cart-badge class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
@@ -86,12 +88,13 @@
             <!-- Поиск одежды прямо в каталоге -->
             <div class="relative mt-6">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-steelGray text-xs pointer-events-none" aria-hidden="true"></i>
-                <input type="text" id="collection-search" autocomplete="off"
+                <input type="text" id="collection-search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="collection-search-suggestions" aria-expanded="false"
                        placeholder="ПОИСК ОДЕЖДЫ: ПОЛО, БРЮКИ, ОБУВЬ..."
                        class="w-full bg-surface border border-surfaceBorder py-3.5 pl-11 pr-12 text-[10px] uppercase tracking-[0.18em] text-white placeholder-steelGray focus:outline-none focus:border-accent transition-colors">
                 <button type="button" id="collection-search-clear" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-steelGray hover:text-white transition-colors" aria-label="Очистить поиск">
                     <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 </button>
+                <div id="collection-search-suggestions" role="listbox" class="hidden absolute left-0 right-0 top-full z-30 max-h-80 overflow-y-auto border border-surfaceBorder bg-obsidian shadow-2xl"></div>
             </div>
 
             <div class="mt-4 flex flex-wrap gap-2 text-[9px] tracking-widest uppercase font-bold" aria-label="Фильтр по категориям">
@@ -103,36 +106,36 @@
                 <button type="button" data-filter="acc" aria-pressed="false" class="collection-filter px-4 py-2.5 text-steelGray border border-transparent hover:text-white transition-colors">АКСЕССУАРЫ</button>
             </div>
 
-            <div id="collection-grid" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+            <div id="collection-grid" class="mt-6 grid grid-cols-2 items-start gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                 {% for item in catalog %}
-                    <article data-category="{{ item.product.category }}" class="border border-surfaceBorder bg-surface p-4">
-                        <a href="{% url 'product_detail' item.product.pk %}" class="block overflow-hidden">
+                    <article data-category="{{ item.product.category }}" data-search="{{ item.product.name }} {{ item.product.get_category_display }} {{ item.product.material }} {{ item.product.color }} {{ item.product.sku }}" class="border border-surfaceBorder bg-surface p-2.5 sm:p-4">
+                        <a href="{% url 'product_detail' item.product.pk %}" class="block aspect-square overflow-hidden sm:aspect-[4/5]">
                             <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" loading="lazy"
-                                 class="w-full h-[260px] object-cover transition-transform duration-700 hover:scale-105">
+                                 class="h-full w-full object-cover transition-transform duration-700 hover:scale-105">
                         </a>
 
-                        <div class="mt-4 flex items-start justify-between gap-3">
+                        <div class="mt-3 flex items-start justify-between gap-1.5 sm:mt-4 sm:gap-3">
                             <div class="min-w-0">
                                 <p class="text-[8px] uppercase tracking-[0.2em] text-accent">{{ item.product.get_category_display }}</p>
-                                <h2 class="mt-1.5 font-header text-[13px] font-bold uppercase tracking-[0.06em] leading-tight">
+                                <h2 class="mt-1.5 font-header text-[11px] font-bold uppercase leading-tight sm:text-[13px] sm:tracking-[0.06em]">
                                     <a href="{% url 'product_detail' item.product.pk %}" class="hover:text-accent transition-colors">{{ item.product.name }}</a>
                                 </h2>
                                 {% if item.product.sku %}
                                     <p class="mt-1 text-[9px] tracking-[0.16em] text-steelGray">{{ item.product.sku }}</p>
                                 {% endif %}
                             </div>
-                            <p class="font-header text-[13px] font-bold whitespace-nowrap">{{ item.product.price_label }} сом</p>
+                            <p class="whitespace-nowrap font-header text-[10px] font-bold sm:text-[13px]">{{ item.product.price_label }} сом</p>
                         </div>
 
-                        <div class="mt-4 flex flex-wrap items-center gap-1.5">
+                        <div class="mt-3 flex flex-wrap items-center gap-1 sm:mt-4 sm:gap-1.5">
                             {% for entry in item.size_run %}
                                 {% if entry.here %}
-                                    <span class="w-9 h-9 rounded-full bg-obsidian border border-surfaceBorder flex flex-col items-center justify-center leading-none">
+                                    <span class="flex h-8 w-8 flex-col items-center justify-center rounded-full border border-surfaceBorder bg-obsidian leading-none sm:h-9 sm:w-9">
                                         <span class="font-header text-[10px]">{{ entry.size }}</span>
                                         <span class="text-[8px] text-steelGray mt-0.5">{{ entry.here }}</span>
                                     </span>
                                 {% else %}
-                                    <span class="w-9 h-9 flex items-center justify-center">
+                                    <span class="flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9">
                                         <span class="font-header text-[10px] text-steelGray line-through">{{ entry.size }}</span>
                                     </span>
                                 {% endif %}
@@ -162,12 +165,12 @@
                                         <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
                                             {% for stock in other.sizes %}
                                                 {% if stock.quantity %}
-                                                    <span class="w-9 h-9 rounded-full bg-obsidian border border-accent flex flex-col items-center justify-center leading-none">
+                                                    <span class="flex h-8 w-8 flex-col items-center justify-center rounded-full border border-accent bg-obsidian leading-none sm:h-9 sm:w-9">
                                                         <span class="font-header text-[10px]">{{ stock.size }}</span>
                                                         <span class="text-[8px] text-steelGray mt-0.5">{{ stock.quantity }}</span>
                                                     </span>
                                                 {% else %}
-                                                    <span class="w-9 h-9 flex items-center justify-center">
+                                                    <span class="flex h-8 w-8 items-center justify-center sm:h-9 sm:w-9">
                                                         <span class="font-header text-[10px] text-steelGray line-through">{{ stock.size }}</span>
                                                     </span>
                                                 {% endif %}
@@ -215,8 +218,7 @@
     {% include "includes/cart_drawer.html" %}
 
     <style>
-        body { padding-bottom: 4rem; }
-        @media (min-width: 768px) { body { padding-bottom: 0; } }
+        @media (max-width: 767px) { body { padding-bottom: calc(7rem + env(safe-area-inset-bottom)); } }
     </style>
 
     <script>
@@ -240,54 +242,135 @@
         const filters = document.querySelectorAll('.collection-filter');
         const cards = document.querySelectorAll('#collection-grid [data-category]');
         const emptyFilterMessage = document.getElementById('collection-empty-filter');
+        const searchInput = document.getElementById('collection-search');
+        const searchClear = document.getElementById('collection-search-clear');
+        const suggestionPanel = document.getElementById('collection-search-suggestions');
+        const categorySearchTerms = [
+            { category: 'pants', label: 'Брюки', terms: ['брюки', 'брюк', 'штаны', 'штан', 'pants', 'trousers'] },
+            { category: 'knit', label: 'Поло и трикотаж', terms: ['поло', 'трикотаж', 'свитер', 'футболка', 'кофта'] },
+            { category: 'outer', label: 'Верхняя одежда', terms: ['верхняя одежда', 'куртка', 'пальто'] },
+            { category: 'shoes', label: 'Обувь', terms: ['обувь', 'лоферы', 'кроссовки', 'туфли', 'ботинки'] },
+            { category: 'acc', label: 'Аксессуары', terms: ['аксессуары', 'ремень', 'сумка', 'кашне', 'шарф'] }
+        ];
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
+
+        function searchCategoryFor(query) {
+            const lastWord = query.trim().split(/\s+/).pop();
+            return categorySearchTerms.find(item =>
+                item.terms.some(term => term.startsWith(lastWord) || lastWord.startsWith(term))
+            );
+        }
+
+        function activeCategory() {
+            return document.querySelector('.collection-filter[aria-pressed="true"]')?.dataset.filter || 'all';
+        }
+
+        function setActiveCategory(category) {
+            filters.forEach((button) => {
+                const isActive = button.dataset.filter === category;
+                button.setAttribute('aria-pressed', String(isActive));
+                button.classList.toggle('bg-surface', isActive);
+                button.classList.toggle('text-white', isActive);
+                button.classList.toggle('border-surfaceBorder', isActive);
+                button.classList.toggle('text-steelGray', !isActive);
+                button.classList.toggle('border-transparent', !isActive);
+            });
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const category = activeCategory();
+            let visibleCount = 0;
+            cards.forEach((card) => {
+                const isVisible = (category === 'all' || card.dataset.category === category) && matchesSearch(card);
+                card.classList.toggle('hidden', !isVisible);
+                if (isVisible) visibleCount += 1;
+            });
+            emptyFilterMessage.classList.toggle('hidden', visibleCount > 0);
+        }
 
         filters.forEach((button) => {
             button.addEventListener('click', () => {
-                const category = button.dataset.filter;
-                let visibleCount = 0;
-
-                filters.forEach((filter) => {
-                    const isActive = filter === button;
-                    filter.setAttribute('aria-pressed', String(isActive));
-                    filter.classList.toggle('bg-surface', isActive);
-                    filter.classList.toggle('text-white', isActive);
-                    filter.classList.toggle('border-surfaceBorder', isActive);
-                    filter.classList.toggle('text-steelGray', !isActive);
-                    filter.classList.toggle('border-transparent', !isActive);
-                });
-
-                cards.forEach((card) => {
-                    const isVisible = category === 'all' || card.dataset.category === category;
-                    card.classList.toggle('hidden', !isVisible || !matchesSearch(card));
-                    if (isVisible && matchesSearch(card)) visibleCount += 1;
-                });
-
-                emptyFilterMessage.classList.toggle('hidden', visibleCount > 0);
+                setActiveCategory(button.dataset.filter);
             });
         });
-
-        // Поиск одежды прямо в каталоге
-        const searchInput = document.getElementById('collection-search');
-        const searchClear = document.getElementById('collection-search-clear');
-
-        function cardText(card) {
-            return card.textContent.toLowerCase();
-        }
 
         function matchesSearch(card) {
             const query = (searchInput && searchInput.value || '').trim().toLowerCase();
             if (!query) return true;
-            return cardText(card).includes(query);
+            const categoryMatch = searchCategoryFor(query);
+            return categoryMatch
+                ? card.dataset.category === categoryMatch.category
+                : (card.dataset.search || '').toLowerCase().includes(query);
+        }
+
+        function renderSearchSuggestions(query) {
+            if (!suggestionPanel || !searchInput) return;
+            if (query.length < 2) {
+                suggestionPanel.innerHTML = '';
+                suggestionPanel.classList.add('hidden');
+                searchInput.setAttribute('aria-expanded', 'false');
+                return;
+            }
+
+            const categoryMatch = searchCategoryFor(query);
+            const categorySuggestion = categoryMatch ? `
+                <button type="button" role="option" onclick="selectCollectionCategory('${categoryMatch.category}')" class="flex w-full items-center justify-between gap-3 border-b border-surfaceBorder px-4 py-3 text-left hover:bg-surface">
+                    <span class="flex items-center gap-3 text-xs font-semibold text-white"><i class="fa-solid fa-layer-group text-accent" aria-hidden="true"></i>${categoryMatch.label}</span>
+                    <span class="text-[9px] uppercase tracking-[0.12em] text-steelGray">Категория</span>
+                </button>` : '';
+            const matches = Array.from(cards).filter(card =>
+                categoryMatch
+                    ? card.dataset.category === categoryMatch.category
+                    : (card.dataset.search || '').toLowerCase().includes(query)
+            ).slice(0, 5);
+            const productSuggestions = matches.map(card => {
+                const productLink = card.querySelector('h2 a');
+                const categoryLabel = card.querySelector('p.text-accent')?.textContent.trim() || '';
+                return `<a role="option" href="${escapeHtml(productLink.href)}" class="flex items-center justify-between gap-3 border-b border-surfaceBorder/70 px-4 py-3 last:border-0 hover:bg-surface">
+                    <span class="min-w-0"><span class="block truncate text-xs font-semibold uppercase text-white">${escapeHtml(productLink.textContent.trim())}</span><span class="mt-1 block text-[9px] text-steelGray">${escapeHtml(categoryLabel)}</span></span>
+                </a>`;
+            }).join('');
+            const noResults = !categorySuggestion && !productSuggestions
+                ? '<p class="px-4 py-3 text-xs text-steelGray">Подходящих товаров пока нет.</p>'
+                : '';
+
+            suggestionPanel.innerHTML = categorySuggestion + productSuggestions + noResults;
+            suggestionPanel.classList.remove('hidden');
+            searchInput.setAttribute('aria-expanded', 'true');
+        }
+
+        function selectCollectionCategory(category) {
+            searchInput.value = '';
+            suggestionPanel.classList.add('hidden');
+            searchInput.setAttribute('aria-expanded', 'false');
+            setActiveCategory(category);
         }
 
         function applySearch() {
-            if (searchClear) searchClear.classList.toggle('hidden', !(searchInput && searchInput.value.trim()));
-            const activeFilter = document.querySelector('.collection-filter[aria-pressed="true"]');
-            if (activeFilter) activeFilter.click();
+            const query = (searchInput && searchInput.value || '').trim().toLowerCase();
+            if (searchClear) searchClear.classList.toggle('hidden', !query);
+            renderSearchSuggestions(query);
+            applyFilters();
         }
 
         if (searchInput) {
             searchInput.addEventListener('input', applySearch);
+            searchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') {
+                    suggestionPanel.classList.add('hidden');
+                    searchInput.setAttribute('aria-expanded', 'false');
+                }
+            });
         }
         if (searchClear) {
             searchClear.addEventListener('click', () => {
@@ -295,11 +378,18 @@
                 applySearch();
             });
         }
+
+        if (new URLSearchParams(window.location.search).get('focus') === 'search' && searchInput) {
+            searchInput.focus({ preventScroll: true });
+            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     </script>
-</body>
-    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ГЛАВНАЯ / ПОИСК / КОРЗИНА / ПРОФИЛЬ -->
-    <nav class="fixed bottom-0 left-0 w-full z-40 md:hidden bg-obsidian/95 border-t border-surfaceBorder backdrop-blur-md">
-        <div class="grid grid-cols-4 h-16 text-[9px] uppercase tracking-[0.14em] font-bold text-steelGray">
+    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ТОЧКИ / ГЛАВНАЯ / КАТАЛОГ / КОРЗИНА / ПРОФИЛЬ -->
+    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 z-40 flex w-full flex-col border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+        <div class="flex justify-center border-b border-surfaceBorder px-1 py-1">
+            {% include "includes/store_plates.html" %}
+        </div>
+        <div class="grid h-14 grid-cols-4 text-[9px] font-bold uppercase tracking-[0.14em] text-steelGray">
             <a href="{% url 'home' %}" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
                 <i class="fa-solid fa-house text-base" aria-hidden="true"></i>
                 <span>ГЛАВНАЯ</span>
@@ -328,4 +418,5 @@
             {% endif %}
         </div>
     </nav>
+</body>
 </html>

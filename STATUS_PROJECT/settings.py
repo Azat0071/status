@@ -13,9 +13,17 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 import secrets
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 # Quick-start development settings - unsuitable for production
@@ -25,7 +33,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or secrets.token_urlsafe(50)
 
 # Set DJANGO_DEBUG=False and DJANGO_ALLOWED_HOSTS for deployment.
-DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in {"true", "1", "yes"}
+DEBUG = _env_bool("DJANGO_DEBUG", True)
 
 
 def _get_allowed_hosts(environ=None):
@@ -38,10 +46,59 @@ def _get_allowed_hosts(environ=None):
     render_hostname = environment.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
     if render_hostname and render_hostname not in hosts:
         hosts.append(render_hostname)
+    if DEBUG:
+        hosts.extend(["127.0.0.1", "localhost", "[::1]"])
     return hosts
 
 
-ALLOWED_HOSTS = ['*']
+def _database_settings():
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    if not database_url:
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+
+    parsed = urlparse(database_url)
+    if parsed.scheme in {"postgres", "postgresql"}:
+        return {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": parsed.path.lstrip("/"),
+            "USER": parsed.username or "",
+            "PASSWORD": parsed.password or "",
+            "HOST": parsed.hostname or "",
+            "PORT": str(parsed.port or ""),
+        }
+
+    if parsed.scheme == "sqlite":
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": parsed.path if parsed.path else BASE_DIR / "db.sqlite3",
+        }
+
+    return {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+
+
+ALLOWED_HOSTS = _get_allowed_hosts()
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+if not DEBUG:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = _env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 
@@ -97,10 +154,7 @@ WSGI_APPLICATION = 'STATUS_PROJECT.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': _database_settings(),
 }
 
 

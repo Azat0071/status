@@ -52,8 +52,17 @@ def _active_store(raw_id):
 
 
 
-def _product_payload(item):
+def _product_payload(item, store=None):
     product = item["product"]
+    fallback = item["other_stores"][0] if item.get("other_stores") else None
+    if item["total_stock"] == 0 and fallback:
+        availability_text = f"Есть в {fallback['store'].name}: {fallback['total']} шт."
+    elif item["total_stock"] > 0:
+        location_name = store.name if store else "этой точке"
+        availability_text = f"Есть в {location_name}: {item['total_stock']} шт."
+    else:
+        availability_text = "Нет в наличии"
+
     return {
         "id": product.id,
         "name": product.name,
@@ -75,15 +84,28 @@ def _product_payload(item):
                 "id": other["store"].id,
                 "name": other["store"].name,
                 "address": other["store"].address,
+                "workingHours": other["store"].working_hours,
                 "total": other["total"],
             }
             for other in item["other_stores"]
         ],
+        "firstAlternativeStore": (
+            {
+                "id": item["other_stores"][0]["store"].id,
+                "name": item["other_stores"][0]["store"].name,
+                "address": item["other_stores"][0]["store"].address,
+                "workingHours": item["other_stores"][0]["store"].working_hours,
+                "total": item["other_stores"][0]["total"],
+            }
+            if item.get("other_stores")
+            else None
+        ),
+        "availabilityText": availability_text,
     }
 
 
 def _catalog_payload(store):
-    return [_product_payload(item) for item in catalog_products(store)]
+    return [_product_payload(item, store) for item in catalog_products(store)]
 
 
 def glavnaia_stranisa(request):
@@ -105,6 +127,7 @@ def glavnaia_stranisa(request):
         "glavnaia_stranisa.html",
         {
             "products": product_data,
+            "featured_products": product_data[:4],
             "customer_profile": customer_profile,
             "customer_orders": customer_orders,
             "customer_name": (

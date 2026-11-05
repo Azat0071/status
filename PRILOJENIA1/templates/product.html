@@ -34,7 +34,7 @@
         };
     </script>
 </head>
-<body class="bg-obsidian text-white font-sans antialiased">
+<body class="bg-obsidian pb-28 font-sans text-white antialiased md:pb-0">
 
     {% if messages %}
         <div class="fixed bottom-6 right-6 z-[60] flex flex-col gap-2">
@@ -45,13 +45,15 @@
     {% endif %}
 
     <header class="relative z-40 bg-obsidian/95 border-b border-surfaceBorder backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+        <div class="max-w-7xl mx-auto flex h-16 items-center justify-between gap-3 px-3 sm:h-20 sm:px-6 lg:px-8">
             <a href="{% url 'home' %}" class="flex flex-col shrink-0" aria-label="STATUS — главная">
-                <span class="font-header text-[22px] font-black tracking-[0.4em] uppercase leading-none">STATUS</span>
+                <span class="font-header text-[18px] font-black tracking-[0.3em] uppercase leading-none sm:text-[22px] sm:tracking-[0.4em]">STATUS</span>
                 <span class="text-[7px] tracking-[0.55em] text-steelGray font-semibold uppercase mt-1">HAUTE COUTURE</span>
             </a>
 
-            {% include "includes/store_trigger.html" %}
+            <div class="hidden md:block">
+                {% include "includes/store_trigger.html" %}
+            </div>
 
             <nav class="hidden lg:flex items-center gap-7 text-[10px] tracking-[0.22em] font-semibold uppercase text-steelGray shrink-0">
                 <a href="{% url 'home' %}" class="hover:text-white transition-colors">ГЛАВНАЯ</a>
@@ -61,20 +63,20 @@
 
             <div class="flex items-center gap-4 text-steelGray shrink-0">
                 <a href="{% url 'collection' %}" class="text-sm hover:text-white transition-colors" aria-label="Каталог"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></a>
-                <button type="button" data-cart-open class="relative text-sm hover:text-white transition-colors" aria-label="Корзина">
+                <button type="button" data-cart-open class="relative mr-1 text-sm hover:text-white transition-colors" aria-label="Корзина">
                     <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
-                    <span id="cart-count-badge" data-cart-badge class="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
+                    <span id="cart-count-badge" data-cart-badge class="absolute -top-1.5 -right-1 w-4 h-4 rounded-full bg-accent text-white text-[8px] flex items-center justify-center hidden">0</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <div class="max-w-7xl mx-auto px-6 lg:px-8 pt-6">
+    <div class="max-w-7xl mx-auto px-3 pt-4 sm:px-6 sm:pt-6 lg:px-8">
         <img src="{{ product.image.url }}" alt="{{ product.name }}"
-             class="w-full h-[320px] sm:h-[360px] object-cover border border-surfaceBorder">
+             class="h-[240px] w-full border border-surfaceBorder object-cover sm:h-[360px] lg:h-[420px]">
     </div>
 
-    <section class="max-w-7xl mx-auto px-6 lg:px-8 pt-8 pb-16 grid grid-cols-1 lg:grid-cols-[1fr_440px] gap-12 items-start">
+    <section class="max-w-7xl mx-auto grid grid-cols-1 items-start gap-6 px-3 pb-12 pt-6 sm:gap-12 sm:px-6 sm:pb-16 sm:pt-8 lg:grid-cols-[1fr_440px] lg:px-8">
 
         <div>
             <div class="flex flex-wrap items-center gap-3 text-[9px] uppercase tracking-[0.18em] text-steelGray">
@@ -83,7 +85,7 @@
                 {% if product.material %}<span class="h-3 w-px bg-surfaceBorder" aria-hidden="true"></span><span>{{ product.material }}{% if product.color %}, {{ product.color }}{% endif %}</span>{% endif %}
             </div>
 
-            <h1 class="mt-3 font-header text-2xl sm:text-3xl font-black uppercase tracking-[0.06em] leading-none">{{ product.name }}</h1>
+            <h1 class="mt-3 font-header text-xl font-black uppercase leading-tight tracking-[0.03em] sm:text-3xl sm:tracking-[0.06em]">{{ product.name }}</h1>
             <p class="mt-4 font-header text-xl font-bold">{{ product.price_label }} сом</p>
 
             {% if current_store %}
@@ -126,7 +128,7 @@
             <p class="mt-6 max-w-xl text-xs text-steelGray font-light leading-relaxed">{{ product.description }}</p>
         </div>
 
-        <div id="reserve-block">
+        <div id="reserve-block" class="min-w-0">
             {% if availability.other_stores %}
                 {% for other in availability.other_stores %}
                     <div class="border border-surfaceBorder bg-surface">
@@ -161,6 +163,15 @@
                                     Забрать: {{ other.store.address }}<br>{{ other.store.working_hours }}
                                 </p>
                             </div>
+
+                            <form method="post" action="{% url 'select_store' %}" class="mt-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <input type="hidden" name="store" value="{{ other.store.id }}">
+                                <button type="submit" class="w-full h-10 border border-surfaceBorder bg-obsidian text-[9px] font-bold uppercase tracking-[0.16em] text-white hover:border-accent hover:text-accent transition-colors">
+                                    Перейти в {{ other.store.name }}
+                                </button>
+                            </form>
 
                             <button type="button"
                                     data-cart-add="{{ product.pk }}"
@@ -203,10 +214,12 @@
         body { padding-bottom: 4rem; }
         @media (min-width: 768px) { body { padding-bottom: 0; } }
     </style>
-</body>
-    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ГЛАВНАЯ / КАТАЛОГ / КОРЗИНА / ПРОФИЛЬ -->
-    <nav class="fixed bottom-0 left-0 w-full z-40 md:hidden bg-obsidian/95 border-t border-surfaceBorder backdrop-blur-md">
-        <div class="grid grid-cols-4 h-16 text-[9px] uppercase tracking-[0.14em] font-bold text-steelGray">
+    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ТОЧКИ / ГЛАВНАЯ / КАТАЛОГ / КОРЗИНА -->
+    <nav class="fixed bottom-0 left-0 z-40 flex w-full flex-col border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+        <div class="flex justify-center border-b border-surfaceBorder px-1 py-1">
+            {% include "includes/store_plates.html" %}
+        </div>
+        <div class="grid h-14 grid-cols-4 text-[9px] font-bold uppercase tracking-[0.14em] text-steelGray">
             <a href="{% url 'home' %}" class="flex flex-col items-center justify-center gap-1 hover:text-white transition-colors">
                 <i class="fa-solid fa-house text-base" aria-hidden="true"></i>
                 <span>ГЛАВНАЯ</span>
@@ -235,4 +248,5 @@
             {% endif %}
         </div>
     </nav>
+</body>
 </html>

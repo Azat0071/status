@@ -108,7 +108,7 @@
         }
     </style>
 </head>
-<body class="antialiased selection:bg-deepBurgundy selection:text-white pb-16 md:pb-0">
+<body class="antialiased selection:bg-deepBurgundy selection:text-white pb-28 md:pb-0">
 
     <!-- TOAST NOTIFICATION -->
     <div id="toast" class="fixed bottom-8 right-8 z-50 bg-surface border border-surfaceBorder px-6 py-4 rounded-none shadow-2xl flex items-center space-x-4 opacity-0 pointer-events-none translate-y-4 transition-all duration-300">
@@ -122,23 +122,9 @@
     <!-- CART SIDE DRAWER -->
     {% include "includes/cart_drawer.html" %}
 
-    <!-- SEARCH OVERLAY -->
-    <div id="search-overlay" class="fixed inset-0 bg-obsidian/98 z-50 hidden flex flex-col items-center justify-start pt-32 px-6">
-        <button onclick="toggleSearch(false)" class="absolute top-8 right-8 text-steelGray hover:text-white text-xl">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="w-full max-w-xl space-y-8 text-center">
-            <h3 class="font-header text-xl font-bold text-white uppercase tracking-[0.3em]">ПОИСК В КАТАЛОГЕ STATUS</h3>
-            <div class="relative">
-                <input type="text" id="search-input" onkeyup="handleSearch(this.value)" placeholder="Шелковое поло, белые брюки, лоферы..." class="w-full bg-transparent border-b border-surfaceBorder py-4 text-sm text-white placeholder-steelGray focus:outline-none focus:border-deepBurgundy transition-colors">
-            </div>
-            <div id="search-results" class="text-left space-y-2 pt-2 max-h-72 overflow-y-auto"></div>
-        </div>
-    </div>
-
     <!-- QUICK VIEW MODAL -->
     <div id="quickview-modal" class="fixed inset-0 z-50 bg-black/90 hidden flex items-center justify-center p-4">
-        <div class="bg-obsidian border border-surfaceBorder max-w-2xl w-full p-8 relative grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="relative grid w-full max-w-2xl grid-cols-1 gap-4 border border-surfaceBorder bg-obsidian p-4 sm:gap-8 sm:p-8 md:grid-cols-2">
             <button onclick="closeQuickView()" class="absolute top-6 right-6 text-steelGray hover:text-white">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -161,66 +147,71 @@
 
     <!-- STICKY HEADER -->
     <header class="fixed top-0 left-0 w-full z-40 bg-obsidian/95 border-b border-surfaceBorder backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto flex h-16 items-center justify-between px-3 sm:h-20 sm:px-6 lg:px-12">
             <!-- Brand Logo -->
-            <div class="flex items-center gap-3 sm:gap-6">
+            <div class="flex items-center gap-2 sm:gap-6">
                 <a href="#" class="flex flex-col">
-                    <span class="font-header text-2xl md:text-3xl font-black tracking-[0.4em] text-white uppercase">STATUS</span>
+                    <span class="font-header text-lg font-black uppercase tracking-[0.3em] text-white sm:text-2xl sm:tracking-[0.4em] md:text-3xl">STATUS</span>
                     <span class="text-[8px] tracking-[0.6em] text-steelGray font-semibold uppercase -mt-1">HAUTE COUTURE</span>
                 </a>
                 {% if request.user.is_authenticated %}
-                    <a href="{% url 'customer_profile' %}" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
+                    <a href="{% url 'customer_profile' %}" aria-label="Мой профиль" class="border border-surfaceBorder px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] transition-colors hover:border-[#b83b4b] hover:text-white sm:px-4"><i class="fa-solid fa-user sm:hidden" aria-hidden="true"></i><span class="hidden sm:inline">Мой профиль</span></a>
                 {% else %}
-                    <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" class="border border-surfaceBorder px-2 sm:px-4 py-2 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] hover:text-white hover:border-[#b83b4b] transition-colors">Мой профиль</a>
+                    <a href="{% url 'login' %}?next=%2Faccounts%2Fprofile%2F" aria-label="Мой профиль" class="border border-surfaceBorder px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-[#b83b4b] transition-colors hover:border-[#b83b4b] hover:text-white sm:px-4"><i class="fa-solid fa-user sm:hidden" aria-hidden="true"></i><span class="hidden sm:inline">Мой профиль</span></a>
                 {% endif %}
             </div>
 
-            <div class="hidden xl:block">
+            <div class="hidden md:block">
                 {% include "includes/store_plates.html" with compact=True %}
             </div>
 
             <!-- Navigation Links -->
-            <nav class="hidden md:flex items-center space-x-6 xl:space-x-8 whitespace-nowrap text-[11px] tracking-[0.25em] font-semibold uppercase text-steelGray">
+            <nav class="hidden xl:flex items-center space-x-4 xl:space-x-6 whitespace-nowrap text-[11px] tracking-[0.25em] font-semibold uppercase text-steelGray">
                 <a href="#home" aria-current="page" class="text-[#b83b4b] hover:text-white transition-colors">ГЛАВНАЯ</a>
-                <a href="#catalog" class="hover:text-white transition-colors">КАТАЛОГ</a>
+                <a href="{% url 'collection' %}" class="hover:text-white transition-colors">КАТАЛОГ</a>
                 <a href="{% url 'out_of_stock' %}" class="hover:text-white transition-colors">НЕТ В НАЛИЧИИ</a>
                 <a href="#lookbook" class="hover:text-white transition-colors">КАПСУЛА</a>
             </nav>
 
             <!-- Currency & Actions -->
-            <div class="flex items-center space-x-6 text-xs">
+            <div class="flex items-center space-x-3 text-xs sm:space-x-6">
                 <!-- Currency Selector -->
-                <select id="currency-select" onchange="changeCurrency(this.value)" class="bg-transparent text-steelGray font-semibold focus:outline-none cursor-pointer hover:text-white tracking-widest">
+                <select id="currency-select-desktop" data-currency-select onchange="changeCurrency(this.value)" class="hidden cursor-pointer bg-transparent font-semibold tracking-widest text-steelGray hover:text-white focus:outline-none sm:block">
                     <option value="KGS" class="bg-obsidian text-white">KGS (сом)</option>
                     <option value="USD" class="bg-obsidian text-white">USD ($)</option>
                     <option value="EUR" class="bg-obsidian text-white">EUR (€)</option>
                 </select>
 
-                <button onclick="toggleSearch(true)" class="hover:text-white transition-colors text-steelGray text-sm" aria-label="Поиск">
+                <a href="{% url 'collection' %}?focus=search" class="hover:text-white transition-colors text-steelGray text-sm" aria-label="Поиск по каталогу">
                     <i class="fa-solid fa-magnifying-glass"></i>
-                </button>
+                </a>
 
                 <button type="button" data-cart-open class="hover:text-white transition-colors text-steelGray text-sm relative" aria-label="Корзина">
                     <i class="fa-solid fa-bag-shopping"></i>
                     <span id="cart-count-badge" data-cart-badge class="absolute -top-2 -right-2 w-4 h-4 bg-deepBurgundy text-white text-[9px] font-bold flex items-center justify-center hidden">0</span>
                 </button>
 
-                <button id="menu-btn" class="md:hidden text-lg text-white" aria-label="Меню">
+                <button id="menu-btn" class="xl:hidden text-lg text-white" aria-label="Меню">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
         </div>
 
         <!-- Mobile Navigation Menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-obsidian border-b border-surfaceBorder px-6 py-6">
+        <div id="mobile-menu" class="hidden xl:hidden bg-obsidian border-b border-surfaceBorder px-6 py-6">
             <div class="flex flex-col space-y-4 text-center font-header text-xs tracking-[0.25em] uppercase font-bold text-steelGray">
                 <a href="#home" aria-current="page" class="text-[#b83b4b] hover:text-white py-2">ГЛАВНАЯ</a>
-                <a href="#catalog" class="hover:text-white py-2">КАТАЛОГ</a>
+                <a href="{% url 'collection' %}" class="hover:text-white py-2">КАТАЛОГ</a>
                 <a href="{% url 'out_of_stock' %}" class="hover:text-white py-2">НЕТ В НАЛИЧИИ</a>
                 <a href="#lookbook" class="hover:text-white py-2">КАПСУЛА</a>
             </div>
-            <div class="xl:hidden pt-5 mt-4 border-t border-surfaceBorder flex justify-center">
-                {% include "includes/store_plates.html" %}
+            <div class="mt-4 flex justify-center border-t border-surfaceBorder pt-4 sm:hidden">
+                <label for="currency-select-mobile" class="sr-only">Валюта</label>
+                <select id="currency-select-mobile" data-currency-select onchange="changeCurrency(this.value)" class="w-full max-w-xs border border-surfaceBorder bg-surface px-3 py-3 text-center text-[10px] font-semibold tracking-[0.16em] text-white focus:outline-none">
+                    <option value="KGS">KGS (сом)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                </select>
             </div>
         </div>
     </header>
@@ -246,7 +237,7 @@
                 </p>
 
                 <div class="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                    <a href="#catalog" class="w-full sm:w-auto px-10 py-4 bg-white text-black text-xs uppercase tracking-[0.25em] font-extrabold hover:bg-deepBurgundy hover:text-white transition-all duration-300 text-center">
+                    <a href="{% url 'collection' %}" class="w-full sm:w-auto px-10 py-4 bg-white text-black text-xs uppercase tracking-[0.25em] font-extrabold hover:bg-deepBurgundy hover:text-white transition-all duration-300 text-center">
                         СМОТРЕТЬ КОЛЛЕКЦИЮ
                     </a>
                     <a href="#lookbook" class="w-full sm:w-auto px-10 py-4 border border-surfaceBorder text-white text-xs uppercase tracking-[0.25em] font-bold hover:border-white transition-all duration-300 text-center">
@@ -281,40 +272,21 @@
         </div>
     </section>
 
-    <!-- PRODUCT CATALOG -->
-    <section id="catalog" class="py-16 sm:py-20 lg:py-28 px-3 sm:px-6 lg:px-12 max-w-7xl mx-auto border-b border-surfaceBorder">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-16 gap-6">
+    <!-- FEATURED PRODUCTS -->
+    <section id="featured" class="max-w-7xl mx-auto border-b border-surfaceBorder px-3 py-16 sm:px-6 sm:py-20 lg:px-12 lg:py-24">
+        <div class="mb-8 flex flex-col gap-5 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
             <div class="space-y-3 reveal">
-                <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">КАТАЛОГ ИЗДЕЛИЙ</span>
-                <h2 class="font-header text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">КАТАЛОГ</h2>
+                <span class="text-[9px] font-bold uppercase tracking-[0.3em] text-deepBurgundy">ВЫБОР STATUS</span>
+                <h2 class="font-header text-2xl font-black uppercase tracking-tight text-white sm:text-4xl">ИЗБРАННЫЕ МОДЕЛИ</h2>
             </div>
-
-            <!-- Category Filter Buttons -->
-            <div class="flex flex-wrap gap-2 text-[10px] tracking-widest uppercase font-bold">
-                <button onclick="filterCatalog('all')" id="filter-all" class="filter-btn px-5 py-2.5 bg-surface text-white border border-surfaceBorder">ВСЕ</button>
-                <button onclick="filterCatalog('knit')" id="filter-knit" class="filter-btn px-5 py-2.5 text-steelGray hover:text-white border border-transparent">ПОЛО И ТРИКОТАЖ</button>
-                <button onclick="filterCatalog('pants')" id="filter-pants" class="filter-btn px-5 py-2.5 text-steelGray hover:text-white border border-transparent">БРЮКИ</button>
-                <button onclick="filterCatalog('outer')" id="filter-outer" class="filter-btn px-5 py-2.5 text-steelGray hover:text-white border border-transparent">ВЕРХНЯЯ ОДЕЖДА</button>
-                <button onclick="filterCatalog('shoes')" id="filter-shoes" class="filter-btn px-5 py-2.5 text-steelGray hover:text-white border border-transparent">ОБУВЬ</button>
-                <button onclick="filterCatalog('acc')" id="filter-acc" class="filter-btn px-5 py-2.5 text-steelGray hover:text-white border border-transparent">АКСЕССУАРЫ</button>
-            </div>
+            <a href="{% url 'collection' %}" class="inline-flex min-h-11 items-center gap-3 border border-surfaceBorder px-5 text-[9px] font-bold uppercase tracking-[0.16em] text-white transition-colors hover:border-accent hover:text-accent">
+                Вся коллекция <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+            </a>
         </div>
-
-        <!-- Поиск одежды прямо в каталоге -->
-        <div class="relative mb-8 sm:mb-12 reveal">
-            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-steelGray text-xs pointer-events-none"></i>
-            <input type="text" id="catalog-search" oninput="handleCatalogSearch(this.value)" autocomplete="off"
-                   placeholder="ПОИСК ОДЕЖДЫ: ПОЛО, БРЮКИ, КРОССОВКИ..."
-                   class="w-full bg-surface border border-surfaceBorder py-4 pl-11 pr-12 text-[11px] uppercase tracking-[0.2em] text-white placeholder-steelGray focus:outline-none focus:border-deepBurgundy transition-colors">
-            <button type="button" id="catalog-search-clear" onclick="clearCatalogSearch()" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-steelGray hover:text-white transition-colors" aria-label="Очистить поиск">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>
-
-        <!-- Dynamic Product Grid -->
-        <div id="product-grid" class="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 lg:gap-8">
-            <!-- Populated via Javascript -->
-        </div>
+        <div id="product-grid" class="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4 lg:gap-6"></div>
+        <a href="{% url 'collection' %}" class="mt-6 flex min-h-11 items-center justify-center border border-surfaceBorder text-[9px] font-bold uppercase tracking-[0.16em] text-steelGray transition-colors hover:border-white hover:text-white sm:hidden">
+            Открыть весь каталог
+        </a>
     </section>
 
     <!-- INTERACTIVE LOOKBOOK / CAPSULE BUILDER -->
@@ -426,19 +398,22 @@
         </div>
     </footer>
 
-    {{ products|json_script:"products-data" }}
+    {{ featured_products|json_script:"products-data" }}
 
-    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ГЛАВНАЯ / ПОИСК / КОРЗИНА / ПРОФИЛЬ -->
-    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 w-full z-40 md:hidden bg-obsidian/95 border-t border-surfaceBorder backdrop-blur-md">
-        <div class="grid grid-cols-4 h-16 text-[9px] uppercase tracking-[0.14em] font-bold text-steelGray">
+    <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ТОЧКИ / ГЛАВНАЯ / ПОИСК / КОРЗИНА / ПРОФИЛЬ -->
+    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 w-full z-40 flex flex-col bg-obsidian/95 border-t border-surfaceBorder pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+        <div class="flex justify-center border-b border-surfaceBorder px-1 py-1">
+            {% include "includes/store_plates.html" %}
+        </div>
+        <div class="grid grid-cols-4 h-14 text-[9px] uppercase tracking-[0.14em] font-bold text-steelGray">
             <a href="#home" class="bottom-nav-item flex flex-col items-center justify-center gap-1">
                 <i class="fa-solid fa-house text-base"></i>
                 <span>ГЛАВНАЯ</span>
             </a>
-            <button type="button" onclick="toggleSearch(true)" class="bottom-nav-item flex flex-col items-center justify-center gap-1">
+            <a href="{% url 'collection' %}?focus=search" class="bottom-nav-item flex flex-col items-center justify-center gap-1" aria-label="Поиск по каталогу">
                 <i class="fa-solid fa-magnifying-glass text-base"></i>
                 <span>ПОИСК</span>
-            </button>
+            </a>
             <button type="button" data-cart-open class="bottom-nav-item relative flex flex-col items-center justify-center gap-1">
                 <span class="relative">
                     <i class="fa-solid fa-bag-shopping text-base"></i>
@@ -474,6 +449,7 @@
         const isAuthenticated = {{ request.user.is_authenticated|yesno:"true,false" }};
         const currentStoreId = {{ current_store.pk|default:"null" }};
         currentCurrency = localStorage.getItem('status-currency') || 'KGS';
+        document.querySelectorAll('[data-currency-select]').forEach(select => select.value = currentCurrency);
 
         function cartStockFor(productId) {
             const product = products.find(item => item.id === productId);
@@ -504,6 +480,35 @@
             })[character]);
         }
 
+        function getCookie(name) {
+            const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+            return match ? decodeURIComponent(match[1]) : '';
+        }
+
+        function switchStore(storeId, nextUrl) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "select_store" %}';
+            form.style.display = 'none';
+
+            const fields = {
+                store: String(storeId),
+                next: nextUrl,
+                csrfmiddlewaretoken: getCookie('csrftoken') || ''
+            };
+
+            Object.entries(fields).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
         // Render Catalog Grid
         function renderProducts(items) {
             const container = document.getElementById('product-grid');
@@ -511,82 +516,45 @@
                 container.innerHTML = `<p class="col-span-full text-center py-16 text-sm text-steelGray">${products.length ? 'В этой категории пока нет товаров.' : 'Каталог скоро появится. Следите за обновлениями.'}</p>`;
                 return;
             }
-            container.innerHTML = items.map(p => `
-                <div class="bg-surface border border-surfaceBorder p-2 sm:p-4 lg:p-6 flex flex-col justify-between group fade-in">
-                    <div class="aspect-[4/5] bg-obsidian border border-surfaceBorder/50 mb-3 sm:mb-4 lg:mb-6 relative overflow-hidden flex items-center justify-center p-0 sm:p-3 lg:p-6 cursor-pointer" onclick="openQuickView(${p.id})">
-                        <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">
-                    </div>
-                    <div class="space-y-1 sm:space-y-2">
-                        <span class="text-[7px] sm:text-[9px] uppercase tracking-[0.12em] sm:tracking-[0.2em] text-deepBurgundy font-bold">${escapeHtml(p.categoryLabel)}</span>
-                        <h3 class="font-header text-[10px] sm:text-sm lg:text-base text-white font-bold uppercase leading-tight line-clamp-2 cursor-pointer hover:text-deepBurgundy transition-colors" onclick="openQuickView(${p.id})">${escapeHtml(p.name)}</h3>
-                        <p class="text-[8px] sm:text-xs text-steelGray font-light line-clamp-2 leading-relaxed">${escapeHtml(p.desc)}</p>
-                        <p class="text-[8px] sm:text-[10px] text-steelGray leading-tight">Размеры: ${p.sizes.length ? p.sizes.map(item => `${escapeHtml(item.size)} (${item.quantity} шт.)`).join(', ') : 'не указаны'}</p>
-                        <p class="text-[8px] sm:text-[10px] text-steelGray">Остаток: ${p.totalStock} шт.</p>
-                        ${p.otherStores && p.otherStores.length ? `<a href="/product/${p.id}/" class="inline-flex text-[8px] sm:text-[10px] uppercase tracking-[0.12em] text-[#b83b4b] hover:text-white transition-colors">Есть в ${escapeHtml(p.otherStores[0].name)}: ${p.otherStores[0].total} шт.</a>` : ''}
-                        <div class="pt-2 sm:pt-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 border-t border-surfaceBorder/50 mt-2 sm:mt-4">
-                            <span class="font-header text-[10px] sm:text-sm text-white font-bold text-center sm:text-left">${formatPrice(p.priceKGS)}</span>
-                            <button onclick="addToCart(${p.id})" ${p.totalStock ? '' : 'disabled'} class="w-full sm:w-auto px-1 sm:px-4 py-2 bg-surfaceBorder hover:bg-deepBurgundy hover:text-white text-[7px] sm:text-[10px] font-bold text-white transition-all uppercase tracking-[0.05em] sm:tracking-wider ${p.totalStock ? '' : 'cursor-not-allowed opacity-50'}">
-                                ${p.totalStock ? 'В КОРЗИНУ' : 'НЕТ В НАЛИЧИИ'}
-                            </button>
+            container.innerHTML = items.map(p => {
+                const altStore = p.firstAlternativeStore || (p.otherStores && p.otherStores[0]) || null;
+                const productUrl = `/product/${p.id}/`;
+                const availability = p.totalStock
+                    ? `В наличии · ${p.totalStock} шт.`
+                    : altStore
+                        ? `Есть в ${escapeHtml(altStore.name)} · ${altStore.total} шт.`
+                        : 'Нет в наличии';
+                const purchaseAction = p.totalStock
+                    ? `<button type="button" onclick="addToCart(${p.id})" class="w-full min-h-11 px-3 bg-white text-obsidian hover:bg-accent hover:text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.14em] transition-colors"><i class="fa-solid fa-bag-shopping mr-2" aria-hidden="true"></i>В корзину</button>`
+                    : altStore
+                        ? `<button type="button" onclick="switchStore(${altStore.id}, '${productUrl}')" class="w-full min-h-11 px-3 border border-accent text-white hover:bg-accent text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] transition-colors">Выбрать ${escapeHtml(altStore.name)}</button>`
+                        : `<button type="button" disabled class="w-full min-h-11 px-3 border border-surfaceBorder text-steelGray text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] opacity-60">Нет в наличии</button>`;
+                return `
+                    <article class="group flex h-full flex-col border border-surfaceBorder bg-surface transition-colors hover:border-white/30 fade-in">
+                        <a href="${productUrl}" class="relative block aspect-[4/5] overflow-hidden bg-obsidian" aria-label="Открыть товар: ${escapeHtml(p.name)}">
+                            <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]">
+                            <span class="absolute left-2 top-2 sm:left-4 sm:top-4 border border-white/15 bg-obsidian/85 px-2 py-1 text-[7px] sm:text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-sm">${availability}</span>
+                        </a>
+                        <div class="flex flex-1 flex-col p-2.5 sm:p-4 lg:p-5">
+                            <span class="text-[7px] sm:text-[9px] font-bold uppercase tracking-[0.16em] text-accent">${escapeHtml(p.categoryLabel)}</span>
+                            <a href="${productUrl}" class="mt-1.5 font-header text-[11px] sm:text-sm lg:text-base font-bold uppercase leading-snug text-white transition-colors hover:text-accent">${escapeHtml(p.name)}</a>
+                            <p class="mt-2 line-clamp-2 min-h-8 text-[9px] sm:text-[11px] leading-relaxed text-steelGray">${escapeHtml(p.desc)}</p>
+                            <p class="mt-2 min-h-4 text-[8px] sm:text-[10px] text-white/70">${p.sizes.length ? `Размеры: ${p.sizes.map(item => `${escapeHtml(item.size)} · ${item.quantity}`).join(' / ')}` : altStore ? `Размеры доступны в ${escapeHtml(altStore.name)}` : 'Размеры уточняйте в магазине'}</p>
+                            ${altStore && !p.totalStock ? `<button type="button" onclick="switchStore(${altStore.id}, '${productUrl}')" class="mt-2 inline-flex items-center gap-1.5 text-left text-[8px] sm:text-[10px] text-accent hover:text-white transition-colors"><i class="fa-solid fa-location-dot" aria-hidden="true"></i>${escapeHtml(altStore.name)} · ${escapeHtml(altStore.address)}</button>` : '<span class="mt-2 min-h-4 text-[8px] sm:text-[10px] text-steelGray">Самовывоз из выбранной точки</span>'}
+                            <div class="mt-auto flex flex-col gap-3 border-t border-surfaceBorder pt-3 sm:pt-4">
+                                <span class="font-header text-xs sm:text-base font-bold text-white">${formatPrice(p.priceKGS)}</span>
+                                ${purchaseAction}
+                            </div>
                         </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Поиск прямо в каталоге: фильтрует карточки по названию и описанию
-        let catalogSearchQuery = '';
-        let catalogSearchCategory = 'all';
-
-        function handleCatalogSearch(query) {
-            catalogSearchQuery = query.trim().toLowerCase();
-            const clearBtn = document.getElementById('catalog-search-clear');
-            if (clearBtn) clearBtn.classList.toggle('hidden', !catalogSearchQuery);
-            applyCatalogFilters();
-        }
-
-        function clearCatalogSearch() {
-            const input = document.getElementById('catalog-search');
-            if (input) input.value = '';
-            handleCatalogSearch('');
-        }
-
-        function applyCatalogFilters() {
-            let items = products;
-            if (catalogSearchCategory !== 'all') {
-                items = items.filter(p => p.category === catalogSearchCategory);
-            }
-            if (catalogSearchQuery) {
-                items = items.filter(p =>
-                    (p.name || '').toLowerCase().includes(catalogSearchQuery) ||
-                    (p.desc || '').toLowerCase().includes(catalogSearchQuery) ||
-                    (p.categoryLabel || '').toLowerCase().includes(catalogSearchQuery) ||
-                    (p.material || '').toLowerCase().includes(catalogSearchQuery) ||
-                    (p.color || '').toLowerCase().includes(catalogSearchQuery)
-                );
-            }
-            renderProducts(items);
-        }
-
-        // Filter Catalog Products
-        function filterCatalog(category) {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('bg-surface', 'text-white', 'border-surfaceBorder');
-                btn.classList.add('text-steelGray', 'border-transparent');
-            });
-            const activeBtn = document.getElementById(`filter-${category}`);
-            if(activeBtn) {
-                activeBtn.classList.add('bg-surface', 'text-white', 'border-surfaceBorder');
-                activeBtn.classList.remove('text-steelGray', 'border-transparent');
-            }
-
-            catalogSearchCategory = category;
-            applyCatalogFilters();
+                    </article>
+                `;
+            }).join('');
         }
 
         // Change Currency Action
         function changeCurrency(val) {
             currentCurrency = val;
+            document.querySelectorAll('[data-currency-select]').forEach(select => select.value = val);
             localStorage.setItem('status-currency', val);
             window.dispatchEvent(new Event('status-currency'));
             renderProducts(products);
@@ -606,7 +574,8 @@
                 product.color && `Цвет: ${product.color}`,
                 product.material && `Материал: ${product.material}`,
                 `Размеры: ${product.sizes.length ? product.sizes.map(item => `${item.size} (${item.quantity} шт.)`).join(', ') : 'не указаны'}`,
-                `Остаток: ${product.totalStock} шт.`
+                `Остаток: ${product.totalStock} шт.`,
+                product.availabilityText || 'Нет в наличии'
             ].filter(Boolean).join(' · ');
             document.getElementById('qv-desc').innerText = `${product.desc}\n\n${inventoryDetails}`;
 
@@ -710,32 +679,6 @@
             toggleCartDrawer(true);
         }
 
-        // Search Overlay Controls
-        function toggleSearch(open) {
-            const overlay = document.getElementById('search-overlay');
-            if(open) {
-                overlay.classList.remove('hidden');
-                document.getElementById('search-input').focus();
-            } else {
-                overlay.classList.add('hidden');
-            }
-        }
-
-        function handleSearch(query) {
-            const results = document.getElementById('search-results');
-            if(!query.trim()) {
-                results.innerHTML = '';
-                return;
-            }
-            const filtered = products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
-            results.innerHTML = filtered.map(p => `
-                <div class="p-3 bg-surface border border-surfaceBorder flex justify-between items-center cursor-pointer hover:border-deepBurgundy" onclick="toggleSearch(false); addToCart(${p.id})">
-                    <span class="text-xs text-white font-bold uppercase">${escapeHtml(p.name)}</span>
-                    <span class="text-xs text-steelGray">${formatPrice(p.priceKGS)}</span>
-                </div>
-            `).join('');
-        }
-
         // Checkout Modal Actions: оформление по складам — в STATUS_CART
         function openCheckoutModal() {
             STATUS_CART.openCheckout();
@@ -778,17 +721,12 @@
         // Закрытие поиска и быстрого просмотра по Escape
         document.addEventListener('keydown', (event) => {
             if (event.key !== 'Escape') return;
-            toggleSearch(false);
             closeQuickView();
         });
 
         // Быстрый просмотр закрывается по клику на фон
         document.getElementById('quickview-modal').addEventListener('click', (event) => {
             if (event.target === event.currentTarget) closeQuickView();
-        });
-
-        document.getElementById('search-overlay').addEventListener('click', (event) => {
-            if (event.target === event.currentTarget) toggleSearch(false);
         });
 
         // Initialize App

@@ -4,3 +4,4 @@ django-unfold>=0.110,<0.111
 gunicorn>=26.2,<27
 whitenoise>=6.9,<7
 django-mathfilters
+psycopg[binary]>=3.2,<3.3

@@ -10,23 +10,23 @@ compact=True — только названия, без адресов (для п
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         {% for point in stores %}
             {% if point.pk == current_store.pk %}
-                <span aria-current="true" class="flex items-center gap-2 h-10 px-3 {% if not compact %}pr-4{% endif %} rounded-full bg-deepBurgundy">
-                    <i class="fa-solid fa-map-marker-alt text-[13px] text-white" aria-hidden="true"></i>
+                <span aria-current="true" class="flex items-center gap-2 h-10 px-3 rounded-full bg-deepBurgundy shadow-sm shadow-deepBurgundy/20">
+                    <i class="fa-solid fa-map-marker-alt text-[11px] text-white" aria-hidden="true"></i>
                     <span class="flex flex-col items-start leading-none">
-                        <span class="font-header text-[10px] font-bold uppercase tracking-[0.14em] text-white">{{ point.name }}</span>
+                        <span class="font-header text-[9px] font-bold uppercase tracking-[0.12em] text-white">{{ point.name }}</span>
                         {% if not compact %}
-                            <span class="text-[8px] text-white mt-1">{{ point.address }}</span>
+                            <span class="text-[7px] text-white/90 mt-1">{{ point.address }}</span>
                         {% endif %}
                     </span>
                 </span>
             {% else %}
                 <button type="submit" name="store" value="{{ point.id }}"
-                        class="flex items-center gap-2 h-10 px-3 {% if not compact %}pr-4{% endif %} rounded-full hover:bg-obsidian transition-colors">
-                    <i class="fa-solid fa-map-marker-alt text-[13px] text-steelGray" aria-hidden="true"></i>
+                        class="flex items-center gap-2 h-10 px-3 rounded-full hover:bg-obsidian transition-colors border border-transparent hover:border-surfaceBorder">
+                    <i class="fa-solid fa-map-marker-alt text-[11px] text-steelGray" aria-hidden="true"></i>
                     <span class="flex flex-col items-start leading-none">
-                        <span class="font-header text-[10px] font-bold uppercase tracking-[0.14em] text-steelGray">{{ point.name }}</span>
+                        <span class="font-header text-[9px] font-bold uppercase tracking-[0.12em] text-steelGray">{{ point.name }}</span>
                         {% if not compact %}
-                            <span class="text-[8px] text-steelGray mt-1">{{ point.address }}</span>
+                            <span class="text-[7px] text-steelGray mt-1">{{ point.address }}</span>
                         {% endif %}
                     </span>
                 </button>

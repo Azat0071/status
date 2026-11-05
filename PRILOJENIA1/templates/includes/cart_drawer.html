@@ -10,7 +10,7 @@
 <aside id="cart-drawer" aria-label="Корзина"
        class="fixed top-0 right-0 h-full w-full max-w-md bg-obsidian border-l border-surfaceBorder z-50 translate-x-full transition-transform duration-300 flex flex-col">
 
-    <div class="px-6 pt-6 border-b border-surfaceBorder">
+    <div class="border-b border-surfaceBorder px-4 pt-4 sm:px-6 sm:pt-6">
         <div class="pb-5 flex justify-between items-center">
             <span class="font-header text-lg font-extrabold tracking-[0.2em] uppercase">Покупки</span>
             <button type="button" data-cart-close class="text-steelGray hover:text-white text-lg transition-colors" aria-label="Закрыть корзину">
@@ -90,7 +90,7 @@
         {% endif %}
     </div>
 
-    <div id="cart-footer" class="p-6 border-t border-surfaceBorder bg-surface space-y-4">
+    <div id="cart-footer" class="space-y-3 border-t border-surfaceBorder bg-surface p-4 sm:space-y-4 sm:p-6">
         <div class="flex justify-between items-center">
             <span class="text-[10px] uppercase tracking-[0.2em] font-semibold text-steelGray">Итого</span>
             <span id="cart-total" class="font-header text-xl font-bold tracking-wider">0 сом</span>
@@ -106,7 +106,7 @@
 </aside>
 
 <div id="checkout-modal" class="fixed inset-0 z-[55] bg-black/90 hidden items-center justify-center p-4">
-    <div class="bg-obsidian border border-surfaceBorder max-w-lg w-full p-8 space-y-5 relative">
+    <div class="relative w-full max-w-lg space-y-4 border border-surfaceBorder bg-obsidian p-4 sm:space-y-5 sm:p-8">
         <button id="checkout-close" type="button" class="absolute top-6 right-6 text-steelGray hover:text-white" aria-label="Закрыть оформление">
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
@@ -129,7 +129,7 @@
 </div>
 
 <div id="conflict-modal" class="fixed inset-0 z-[60] bg-black/90 hidden items-center justify-center p-4">
-    <div class="bg-obsidian border border-surfaceBorder max-w-lg w-full p-8 space-y-5">
+    <div class="w-full max-w-lg space-y-4 border border-surfaceBorder bg-obsidian p-4 sm:space-y-5 sm:p-8">
         <div>
             <h3 class="font-header text-lg font-extrabold uppercase tracking-wider">Остатки изменились</h3>
             <p class="mt-2 text-[10px] uppercase tracking-[0.16em] text-steelGray">Пока ничего не списано</p>

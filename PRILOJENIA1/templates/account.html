@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             theme: {
@@ -28,14 +29,14 @@
         };
     </script>
 </head>
-<body class="min-h-screen bg-obsidian text-white font-sans antialiased">
+<body class="min-h-screen bg-obsidian pb-20 font-sans text-white antialiased md:pb-0">
     <header class="border-b border-surfaceBorder">
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
-            <a href="{% url 'home' %}" class="font-header text-2xl font-black tracking-[0.4em]">STATUS</a>
-            <a href="{% url 'home' %}" class="text-[10px] tracking-[0.2em] uppercase text-steelGray hover:text-white">Вернуться в магазин</a>
+        <div class="max-w-7xl mx-auto flex h-16 items-center justify-between px-3 sm:h-20 sm:px-6 lg:px-12">
+            <a href="{% url 'home' %}" class="font-header text-xl font-black tracking-[0.3em] sm:text-2xl sm:tracking-[0.4em]">STATUS</a>
+            <a href="{% url 'home' %}" class="hidden text-[10px] uppercase tracking-[0.2em] text-steelGray hover:text-white sm:block">Вернуться в магазин</a>
         </div>
     </header>
-    <main class="max-w-3xl mx-auto px-6 py-12 sm:py-20">
+    <main class="max-w-3xl mx-auto px-3 py-8 sm:px-6 sm:py-20">
         <div class="border-b-2 border-deepBurgundy pb-3 mb-8">
             <span class="text-[9px] tracking-[0.35em] uppercase text-steelGray">ЛИЧНЫЙ КАБИНЕТ STATUS</span>
             <h1 class="mt-3 font-header text-2xl sm:text-4xl font-black uppercase">{{ title }}</h1>
@@ -134,5 +135,29 @@
         input:focus { border-color: #b83b4b; }
         input[type="checkbox"] { width: auto; }
     </style>
+    <nav aria-label="Мобильная навигация" class="fixed bottom-0 left-0 z-40 grid w-full grid-cols-3 border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] text-[9px] font-bold uppercase tracking-[0.12em] text-steelGray backdrop-blur-md md:hidden">
+        <button type="button" onclick="navigateBack()" class="flex h-16 flex-col items-center justify-center gap-1 transition-colors hover:text-white">
+            <i class="fa-solid fa-arrow-left text-base" aria-hidden="true"></i>
+            <span>Назад</span>
+        </button>
+        <a href="{% url 'home' %}" class="flex h-16 flex-col items-center justify-center gap-1 transition-colors hover:text-white">
+            <i class="fa-solid fa-house text-base" aria-hidden="true"></i>
+            <span>Главная</span>
+        </a>
+        <a href="{% url 'collection' %}" class="flex h-16 flex-col items-center justify-center gap-1 transition-colors hover:text-white">
+            <i class="fa-solid fa-shirt text-base" aria-hidden="true"></i>
+            <span>Каталог</span>
+        </a>
+    </nav>
+    <script>
+        function navigateBack() {
+            const referrer = document.referrer;
+            if (referrer && new URL(referrer).origin === window.location.origin && window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            window.location.assign("{% url 'home' %}");
+        }
+    </script>
 </body>
 </html>

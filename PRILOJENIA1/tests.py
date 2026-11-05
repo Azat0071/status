@@ -398,6 +398,20 @@ class CustomerAccountTests(TestCase):
             f"{reverse('login')}?next={reverse('customer_profile')}",
         )
 
+    def test_profile_page_shows_mobile_navigation(self):
+        user = get_user_model().objects.create_user(
+            username="profile-navigation",
+            password="STATUS-strong-password-2026!",
+        )
+        CustomerProfile.objects.create(user=user, phone="+996700123456")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("customer_profile"))
+
+        self.assertContains(response, 'aria-label="Мобильная навигация"')
+        self.assertContains(response, "Назад")
+        self.assertContains(response, reverse("collection"))
+
 
 class OrderFlowTests(TestCase):
     def setUp(self):
@@ -743,6 +757,53 @@ class StoreStockTests(TestCase):
         )
         self.assertEqual(
             items[self.product.pk]["other_stores"][0]["store"], self.second
+        )
+
+    def test_catalog_shows_alternative_store_when_selected_store_is_empty(self):
+        fallback = Product.objects.create(
+            name="Ремень «Torino»",
+            sku="ST-AC-508",
+            category=Product.Category.ACCESSORIES,
+            price=6400,
+            description="Тест",
+            image="products/belt.jpg",
+        )
+        ProductSize.objects.create(
+            product=fallback, store=self.main, size="ONE SIZE", quantity=0
+        )
+        ProductSize.objects.create(
+            product=fallback, store=self.second, size="ONE SIZE", quantity=3
+        )
+
+        response = self.client.get(reverse("home"))
+        payload = response.context["products"]
+        item = next(entry for entry in payload if entry["id"] == fallback.pk)
+
+        self.assertEqual(item["totalStock"], 0)
+        self.assertEqual(item["availabilityText"], "Есть в Чуй: 3 шт.")
+        self.assertEqual(item["firstAlternativeStore"]["id"], self.second.pk)
+        self.assertEqual(item["firstAlternativeStore"]["name"], "Чуй")
+
+    def test_homepage_limits_featured_products_without_truncating_catalog(self):
+        for index in range(5):
+            product = Product.objects.create(
+                name=f"Брюки тестовые {index}",
+                sku=f"ST-TEST-{index}",
+                category=Product.Category.PANTS,
+                price=10000,
+                description="Тест",
+                image="products/test.jpg",
+            )
+            ProductSize.objects.create(
+                product=product, store=self.main, size="M", quantity=1
+            )
+
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(len(response.context["products"]), 6)
+        self.assertEqual(len(response.context["featured_products"]), 4)
+        self.assertEqual(
+            response.context["featured_products"], response.context["products"][:4]
         )
 
     def test_sold_out_products_are_not_in_catalog(self):
