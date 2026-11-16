@@ -4,8 +4,8 @@ from PRILOJENIA1.models import Store
 
 DEFAULT_STORES = (
     {
-        "name": "Токтогула",
-        "address": "ул. Токтогула, 87",
+        "name": "Чуй",
+        "address": "пр. Чуй, 322",
         "city": "Бишкек",
         "phone": "+996 312 90 12 08",
         "working_hours": "11:00–21:00",
@@ -13,8 +13,8 @@ DEFAULT_STORES = (
         "is_active": True,
     },
     {
-        "name": "Чуй",
-        "address": "пр. Чуй, 155",
+        "name": "Киевская",
+        "address": "ул. Киевская, 168",
         "city": "Бишкек",
         "phone": "+996 312 90 44 71",
         "working_hours": "11:00–21:00",

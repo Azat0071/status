@@ -7,6 +7,9 @@ from django.db.models import (
     BooleanField,
     Case,
     Count,
+    IntegerField,
+    OuterRef,
+    Subquery,
     Sum,
     Value,
     When,
@@ -20,13 +23,29 @@ from .models import (
     Order,
     OrderItem,
     Product,
+    ProductImage,
     ProductSize,
     RestockRequest,
+    SiteContactSettings,
     StockMovement,
     Store,
 )
 
 LOW_STOCK_LIMIT = 3
+
+
+@admin.register(SiteContactSettings)
+class SiteContactSettingsAdmin(ModelAdmin):
+    fieldsets = (
+        ("Контакты", {"fields": ("phone", "email")}),
+        ("Социальные сети", {"fields": ("whatsapp_url",)}),
+    )
+
+    def has_add_permission(self, request):
+        return not SiteContactSettings.objects.filter(pk=1).exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 def _parse_sizes(sizes_field):
@@ -47,6 +66,7 @@ def _parse_sizes(sizes_field):
 class ProductSizeInline(TabularInline):
     model = ProductSize
     extra = 2
+    can_delete = False
     fields = ("store", "size", "quantity", "stock_hint")
     readonly_fields = ("stock_hint",)
     verbose_name = "Размер и остаток"
@@ -63,6 +83,14 @@ class ProductSizeInline(TabularInline):
             )
             return f"−{abs(sold)}"
         return "—"
+
+
+class ProductImageInline(TabularInline):
+    model = ProductImage
+    extra = 2
+    fields = ("image", "position")
+    verbose_name = "Дополнительное фото"
+    verbose_name_plural = "Дополнительные фотографии"
 
 
 class ProductSizeLowStockFilter(admin.SimpleListFilter):
@@ -103,7 +131,7 @@ class ProductAdmin(ModelAdmin):
     search_fields = ("name", "sku", "description", "material", "color")
     list_editable = ("is_available",)
     list_per_page = 25
-    inlines = (ProductSizeInline,)
+    inlines = (ProductSizeInline, ProductImageInline)
     actions = ("publish_products", "unpublish_products", "duplicate_products")
     fieldsets = (
         ("Основная информация", {
@@ -113,7 +141,7 @@ class ProductAdmin(ModelAdmin):
             "fields": ("price", "image"),
         }),
         ("Характеристики (необязательно)", {
-            "fields": ("color", "material"),
+            "fields": ("color", "material", "search_keywords"),
         }),
         ("Публикация", {
             "fields": ("is_available", "created_at"),
@@ -141,14 +169,65 @@ class ProductAdmin(ModelAdmin):
         return "—"
 
     def get_queryset(self, request):
+        stock_total = (
+            ProductSize.objects.filter(product_id=OuterRef("pk"))
+            .order_by()
+            .values("product_id")
+            .annotate(total=Sum("quantity"))
+            .values("total")[:1]
+        )
+        sold_total = (
+            OrderItem.objects.filter(product_id=OuterRef("pk"))
+            .order_by()
+            .values("product_id")
+            .annotate(total=Sum("quantity"))
+            .values("total")[:1]
+        )
         return (
             super()
             .get_queryset(request)
             .annotate(
-                stock_total=Coalesce(Sum("sizes__quantity"), 0),
-                sold_total=Coalesce(Sum("order_items__quantity"), 0),
+                stock_total=Coalesce(
+                    Subquery(stock_total, output_field=IntegerField()), Value(0)
+                ),
+                sold_total=Coalesce(
+                    Subquery(sold_total, output_field=IntegerField()), Value(0)
+                ),
             )
         )
+
+    def save_formset(self, request, form, formset, change):
+        if formset.model is not ProductSize:
+            return super().save_formset(request, form, formset, change)
+
+        previous_quantities = {
+            stock.pk: stock.quantity for stock in formset.get_queryset()
+        }
+        instances = formset.save(commit=False)
+        for stock in formset.deleted_objects:
+            stock.delete()
+        for stock in instances:
+            previous_quantity = previous_quantities.get(stock.pk)
+            stock.save()
+            quantity_change = stock.quantity - (previous_quantity or 0)
+            if quantity_change:
+                is_new_stock = previous_quantity is None
+                StockMovement.objects.create(
+                    stock=stock,
+                    kind=(
+                        StockMovement.Kind.RESTOCK
+                        if is_new_stock and quantity_change > 0
+                        else StockMovement.Kind.ADJUST
+                    ),
+                    quantity=quantity_change,
+                    comment=(
+                        "Приход через карточку товара"
+                        if is_new_stock
+                        else "Изменение через карточку товара"
+                    ),
+                    created_by=request.user,
+                )
+        formset.save_m2m()
 
     @admin.action(description="Опубликовать на сайте")
     def publish_products(self, request, queryset):
@@ -183,7 +262,6 @@ class ProductSizeAdmin(ModelAdmin):
         "quantity",
         "stock_badge",
     )
-    list_editable = ("quantity",)
     list_filter = ("store", ProductSizeLowStockFilter)
     search_fields = ("product__name", "product__sku", "size", "store__name")
     list_per_page = 50
@@ -217,13 +295,16 @@ class ProductSizeAdmin(ModelAdmin):
             ).first()
         super().save_model(request, obj, form, change)
         if change and before is not None and before != obj.quantity:
-            StockMovement.apply(
+            StockMovement.objects.create(
                 stock=obj,
                 kind=StockMovement.Kind.ADJUST,
                 quantity=obj.quantity - before,
                 comment="Изменение в админке",
-                user=request.user,
+                created_by=request.user,
             )
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     @admin.action(description="＋ Приход 5 шт.")
     def add_five(self, request, queryset):
@@ -301,9 +382,9 @@ class StoreAdmin(ModelAdmin):
         "is_active",
         "positions_count",
     )
-    list_editable = ("is_default", "is_active")
+    list_editable = ("is_active",)
     list_filter = ("city", "is_active", "is_default")
-    search_fields = ("name", "address", "city", "phone")
+    search_fields = ("name", "address", "city", "phone", "instagram_url")
 
     @admin.display(description="Позиций на складе", ordering="positions")
     def positions_count(self, obj):
@@ -456,7 +537,6 @@ class OrderAdmin(ModelAdmin):
     )
     list_filter = ("status", "store", "created_at")
     search_fields = ("customer_name", "customer_phone", "user__username", "user__email")
-    list_editable = ("status",)
     date_hierarchy = "created_at"
     actions = ("mark_processing", "mark_completed", "mark_cancelled")
     readonly_fields = (
@@ -468,8 +548,9 @@ class OrderAdmin(ModelAdmin):
         "checkout_id",
         "total_price",
         "created_at",
+        "status",
     )
-    fields = readonly_fields + ("status",)
+    fields = readonly_fields
     inlines = (OrderItemInline,)
 
     @admin.action(description="Перевести в «В обработке»")

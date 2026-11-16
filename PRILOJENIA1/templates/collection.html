@@ -34,7 +34,7 @@
         };
     </script>
 </head>
-<body class="bg-obsidian pb-28 font-sans text-white antialiased md:pb-0">
+<body class="bg-obsidian pb-28 font-sans text-white antialiased">
 
     {% if messages %}
         <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
@@ -108,7 +108,7 @@
 
             <div id="collection-grid" class="mt-6 grid grid-cols-2 items-start gap-3 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                 {% for item in catalog %}
-                    <article data-category="{{ item.product.category }}" data-search="{{ item.product.name }} {{ item.product.get_category_display }} {{ item.product.material }} {{ item.product.color }} {{ item.product.sku }}" class="border border-surfaceBorder bg-surface p-2.5 sm:p-4">
+                    <article data-category="{{ item.product.category }}" data-search="{{ item.product.name }} {{ item.product.get_category_display }} {{ item.product.material }} {{ item.product.color }} {{ item.product.sku }} {{ item.product.search_keywords }}" class="border border-surfaceBorder bg-surface p-2.5 sm:p-4">
                         <a href="{% url 'product_detail' item.product.pk %}" class="block aspect-square overflow-hidden sm:aspect-[4/5]">
                             <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" loading="lazy"
                                  class="h-full w-full object-cover transition-transform duration-700 hover:scale-105">
@@ -310,7 +310,13 @@
             const categoryMatch = searchCategoryFor(query);
             return categoryMatch
                 ? card.dataset.category === categoryMatch.category
-                : (card.dataset.search || '').toLowerCase().includes(query);
+                : matchesProductSearch(card, query);
+        }
+
+        function matchesProductSearch(card, query) {
+            const searchable = (card.dataset.search || '').normalize('NFKC').toLowerCase();
+            const terms = query.normalize('NFKC').split(/\s+/).filter(Boolean);
+            return terms.every(term => searchable.includes(term));
         }
 
         function renderSearchSuggestions(query) {
@@ -331,7 +337,7 @@
             const matches = Array.from(cards).filter(card =>
                 categoryMatch
                     ? card.dataset.category === categoryMatch.category
-                    : (card.dataset.search || '').toLowerCase().includes(query)
+                    : matchesProductSearch(card, query)
             ).slice(0, 5);
             const productSuggestions = matches.map(card => {
                 const productLink = card.querySelector('h2 a');
@@ -385,7 +391,7 @@
         }
     </script>
     <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ТОЧКИ / ГЛАВНАЯ / КАТАЛОГ / КОРЗИНА / ПРОФИЛЬ -->
-    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 z-40 flex w-full flex-col border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 z-40 flex w-full flex-col border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
         <div class="flex justify-center border-b border-surfaceBorder px-1 py-1">
             {% include "includes/store_plates.html" %}
         </div>

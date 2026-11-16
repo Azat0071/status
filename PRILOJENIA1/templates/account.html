@@ -29,7 +29,7 @@
         };
     </script>
 </head>
-<body class="min-h-screen bg-obsidian pb-20 font-sans text-white antialiased md:pb-0">
+<body class="min-h-screen bg-obsidian pb-20 font-sans text-white antialiased">
     <header class="border-b border-surfaceBorder">
         <div class="max-w-7xl mx-auto flex h-16 items-center justify-between px-3 sm:h-20 sm:px-6 lg:px-12">
             <a href="{% url 'home' %}" class="font-header text-xl font-black tracking-[0.3em] sm:text-2xl sm:tracking-[0.4em]">STATUS</a>
@@ -135,7 +135,7 @@
         input:focus { border-color: #b83b4b; }
         input[type="checkbox"] { width: auto; }
     </style>
-    <nav aria-label="Мобильная навигация" class="fixed bottom-0 left-0 z-40 grid w-full grid-cols-3 border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] text-[9px] font-bold uppercase tracking-[0.12em] text-steelGray backdrop-blur-md md:hidden">
+    <nav aria-label="Мобильная навигация" class="fixed bottom-0 left-0 z-40 grid w-full grid-cols-3 border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] text-[9px] font-bold uppercase tracking-[0.12em] text-steelGray backdrop-blur-md">
         <button type="button" onclick="navigateBack()" class="flex h-16 flex-col items-center justify-center gap-1 transition-colors hover:text-white">
             <i class="fa-solid fa-arrow-left text-base" aria-hidden="true"></i>
             <span>Назад</span>

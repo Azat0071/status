@@ -6,7 +6,7 @@ from django.middleware.csrf import get_token
 from django.urls import reverse
 
 from .checkout import attach_checkout_groups
-from .models import Store
+from .models import SiteContactSettings, Store
 
 EXCHANGE_RATES = {"KGS": 1, "USD": 0.011, "EUR": 0.010}
 
@@ -18,6 +18,7 @@ def store_context(request):
         )
     )
     current_store = getattr(request, "store", None) or Store.default()
+    site_contact = SiteContactSettings.objects.filter(pk=1).first()
     is_authenticated = request.user.is_authenticated
     customer_orders = (
         attach_checkout_groups(
@@ -30,6 +31,7 @@ def store_context(request):
         "currentStoreId": current_store.pk if current_store else None,
         "isAuthenticated": is_authenticated,
         "csrfToken": get_token(request),
+        "whatsappUrl": site_contact.whatsapp_url if site_contact else "",
         "rates": EXCHANGE_RATES,
         "stores": [
             {"id": store.pk, "name": store.name, "address": store.address}
@@ -46,4 +48,5 @@ def store_context(request):
         "current_store": current_store,
         "customer_orders": customer_orders,
         "cart_context": cart_context,
+        "site_contact": site_contact,
     }

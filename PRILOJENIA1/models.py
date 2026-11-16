@@ -13,6 +13,7 @@ class Store(models.Model):
     address = models.CharField("Адрес", max_length=200)
     city = models.CharField("Город", max_length=80, default="Бишкек")
     phone = models.CharField("Телефон", max_length=30, blank=True)
+    instagram_url = models.URLField("Instagram этой точки", blank=True)
     working_hours = models.CharField(
         "Часы работы",
         max_length=60,
@@ -41,6 +42,33 @@ class Store(models.Model):
         return active.filter(is_default=True).first() or active.first()
 
 
+class SiteContactSettings(models.Model):
+    phone = models.CharField("Телефон", max_length=30, blank=True)
+    email = models.EmailField("Электронная почта", blank=True)
+    instagram_url = models.URLField(
+        "Общий Instagram",
+        blank=True,
+        help_text="Используется, только если у выбранной точки не задан свой Instagram.",
+    )
+    whatsapp_url = models.URLField("WhatsApp", blank=True)
+    tiktok_url = models.URLField("TikTok", blank=True)
+
+    class Meta:
+        verbose_name = "контакты сайта"
+        verbose_name_plural = "контакты сайта"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @property
+    def phone_link(self):
+        return "".join(character for character in self.phone if character.isdigit() or character == "+")
+
+    def __str__(self):
+        return "Контакты и соцсети сайта"
+
+
 class Product(models.Model):
     class Category(models.TextChoices):
         KNIT = "knit", "Поло и трикотаж"
@@ -57,6 +85,11 @@ class Product(models.Model):
     image = models.ImageField("Фотография", upload_to="products/")
     color = models.CharField("Цвет", max_length=80, blank=True)
     material = models.CharField("Материал", max_length=120, blank=True)
+    search_keywords = models.TextField(
+        "Слова для поиска",
+        blank=True,
+        help_text="Дополнительные названия и варианты поиска через запятую.",
+    )
     is_available = models.BooleanField("Показывать на сайте", default=True)
     created_at = models.DateTimeField("Добавлен", auto_now_add=True)
 
@@ -72,6 +105,25 @@ class Product(models.Model):
     def price_label(self):
         """Цена с разделителем разрядов: 21 800."""
         return f"{self.price:,}".replace(",", " ")
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="gallery_images",
+        verbose_name="Товар",
+    )
+    image = models.ImageField("Фотография", upload_to="products/gallery/")
+    position = models.PositiveIntegerField("Порядок", default=0)
+
+    class Meta:
+        ordering = ("position", "pk")
+        verbose_name = "фотография товара"
+        verbose_name_plural = "фотографии товара"
+
+    def __str__(self):
+        return f"{self.product.name} · фото {self.position + 1}"
 
 
 class ProductSize(models.Model):

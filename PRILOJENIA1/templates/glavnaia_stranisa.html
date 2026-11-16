@@ -108,7 +108,7 @@
         }
     </style>
 </head>
-<body class="antialiased selection:bg-deepBurgundy selection:text-white pb-28 md:pb-0">
+<body class="antialiased selection:bg-deepBurgundy selection:text-white pb-28">
 
     <!-- TOAST NOTIFICATION -->
     <div id="toast" class="fixed bottom-8 right-8 z-50 bg-surface border border-surfaceBorder px-6 py-4 rounded-none shadow-2xl flex items-center space-x-4 opacity-0 pointer-events-none translate-y-4 transition-all duration-300">
@@ -233,7 +233,7 @@
                 </h1>
 
                 <p class="text-steelGray font-light text-xs sm:text-sm leading-relaxed max-w-lg">
-                    STATUS — безупречное портновское искусство для тех, чье присутствие не требует лишних слов. Коллекция трикотажа цвета глубокого бордо, белых брюк из высокоплотного хлопка и кашемира.
+                    STATUS — одежда для тех, кто ценит сдержанный стиль и качественные материалы. В каталоге представлены трикотаж, брюки, верхняя одежда, обувь и аксессуары.
                 </p>
 
                 <div class="flex flex-col sm:flex-row items-center gap-4 pt-4">
@@ -309,7 +309,7 @@
                 <span class="text-[9px] uppercase tracking-[0.3em] text-steelGray font-bold">ИТОГ ГОТОВОЙ КАПСУЛЫ</span>
                 <div>
                     <h3 class="font-header text-2xl font-black text-white uppercase mb-1">КАПСУЛЬНЫЙ КОМПЛЕКТ</h3>
-                    <p class="text-xs text-steelGray font-light">Каждое изделие подгоняется портными по вашим индивидуальным меркам.</p>
+                    <p class="text-xs text-steelGray font-light">Сочетайте модели из каталога, чтобы подобрать комплект под свой стиль и бюджет.</p>
                 </div>
 
                 <div class="border-t border-surfaceBorder pt-6 flex justify-between items-center">
@@ -336,18 +336,18 @@
             </div>
 
             <div class="space-y-4 reveal">
-                <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">02 / АТЕЛЬЕ</span>
-                <h3 class="font-header text-xl text-white font-extrabold uppercase">ПОРТНОВСКОЕ МАСТЕРСТВО</h3>
+                <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">02 / РАЗМЕРЫ</span>
+                <h3 class="font-header text-xl text-white font-extrabold uppercase">НАЛИЧИЕ ПО ТОЧКАМ</h3>
                 <p class="text-xs text-steelGray font-light leading-relaxed">
-                    Силуэт каждого изделия проектируется с учетом анатомических особенностей. Без строчек под напряжением и деформаций.
+                    Проверяйте доступные размеры и остатки в каждой точке продаж перед заказом.
                 </p>
             </div>
 
             <div class="space-y-4 reveal">
-                <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">03 / ЭКСКЛЮЗИВ</span>
-                <h3 class="font-header text-xl text-white font-extrabold uppercase">ОГРАНИЧЕННАЯ СЕРИЯ</h3>
+                <span class="text-[9px] uppercase tracking-[0.3em] text-deepBurgundy font-bold">03 / КОЛЛЕКЦИЯ</span>
+                <h3 class="font-header text-xl text-white font-extrabold uppercase">СОБЕРИТЕ СВОЙ ОБРАЗ</h3>
                 <p class="text-xs text-steelGray font-light leading-relaxed">
-                    Изделия STATUS выходят ограниченным тиражом в 50 экземпляров. Каждая модель сопровождена серийным сертификатом подлинности.
+                    Сочетайте трикотаж, брюки, обувь и аксессуары из каталога STATUS.
                 </p>
             </div>
         </div>
@@ -366,29 +366,28 @@
 
             <div class="space-y-3">
                 <p class="text-white font-bold uppercase tracking-widest text-[10px]">ЛОКАЦИИ</p>
-                <p>г. Бишкек: Бутик STATUS, ул. Токтогула</p>
-                <p>г. Милан: Via Montenapoleone 8</p>
-                <p>г. Дубай: DIFC Gate Precinct</p>
-            </div>
-
-            <div class="space-y-3">
-                <p class="text-white font-bold uppercase tracking-widest text-[10px]">ПЕРСОНАЛЬНЫЙ СЕРВИС</p>
-                <p><a href="#" class="hover:text-white transition-colors">Выездной портной</a></p>
-                <p><a href="#" class="hover:text-white transition-colors">Курьерская примерка</a></p>
-                <p><a href="#" class="hover:text-white transition-colors">Закрытый клуб клиентов</a></p>
+                {% for store in stores %}
+                    <p>
+                        <a href="https://2gis.kg/bishkek/search/{{ store.address|urlencode }}" target="_blank" rel="noopener noreferrer" aria-label="Открыть точку {{ store.name }} на карте 2GIS" class="inline-flex items-center gap-1 transition-colors hover:text-white">
+                            {{ store.city }}: {{ store.name }}, {{ store.address }}
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]" aria-hidden="true"></i>
+                        </a>
+                    </p>
+                {% empty %}
+                    <p>Адреса уточняются</p>
+                {% endfor %}
             </div>
 
         <!-- Соцсети и контакты -->
-        <div class="max-w-7xl mx-auto px-6 lg:px-12 flex flex-col sm:flex-row justify-between items-center gap-6 mb-10">
-            <div class="flex items-center gap-4 text-sm">
-                <a href="#" aria-label="Telegram" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-telegram"></i></a>
-                <a href="#" aria-label="Instagram" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-instagram"></i></a>
-                <a href="#" aria-label="WhatsApp" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-whatsapp"></i></a>
-                <a href="#" aria-label="TikTok" class="w-10 h-10 border border-surfaceBorder flex items-center justify-center text-steelGray hover:text-white hover:border-deepBurgundy transition-colors"><i class="fa-brands fa-tiktok"></i></a>
-            </div>
-            <div class="flex items-center gap-6 text-[10px] uppercase tracking-[0.2em] text-steelGray">
-                <a href="tel:+996700000000" class="hover:text-white transition-colors"><i class="fa-solid fa-phone mr-2"></i>+996 700 000 000</a>
-                <a href="mailto:hello@status.kg" class="hover:text-white transition-colors"><i class="fa-solid fa-envelope mr-2"></i>hello@status.kg</a>
+        <div class="max-w-7xl mx-auto flex flex-row flex-wrap items-center justify-center gap-5 px-6 mb-10 lg:px-12">
+            {% if current_store.instagram_url or site_contact.whatsapp_url %}
+            <div class="flex items-center gap-3 text-sm">
+                    {% if current_store.instagram_url %}<a href="{{ current_store.instagram_url }}" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="flex h-10 w-10 items-center justify-center border border-surfaceBorder text-steelGray transition-colors hover:border-deepBurgundy hover:text-white"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>{% endif %}
+                    {% if site_contact.whatsapp_url %}<a href="{{ site_contact.whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" class="flex h-10 w-10 items-center justify-center border border-surfaceBorder text-steelGray transition-colors hover:border-deepBurgundy hover:text-white"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>{% endif %}
+                </div>
+            {% endif %}
+            <div class="flex items-center text-[10px] uppercase tracking-[0.2em] text-steelGray">
+                {% if site_contact.phone %}<a href="tel:{{ site_contact.phone_link }}" class="whitespace-nowrap transition-colors hover:text-white"><i class="fa-solid fa-phone mr-2" aria-hidden="true"></i>{{ site_contact.phone }}</a>{% endif %}
             </div>
         </div>
 
@@ -401,7 +400,7 @@
     {{ featured_products|json_script:"products-data" }}
 
     <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ТОЧКИ / ГЛАВНАЯ / ПОИСК / КОРЗИНА / ПРОФИЛЬ -->
-    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 w-full z-40 flex flex-col bg-obsidian/95 border-t border-surfaceBorder pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+    <nav id="mobile-bottom-nav" class="fixed bottom-0 left-0 w-full z-40 flex flex-col bg-obsidian/95 border-t border-surfaceBorder pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
         <div class="flex justify-center border-b border-surfaceBorder px-1 py-1">
             {% include "includes/store_plates.html" %}
         </div>

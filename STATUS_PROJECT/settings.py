@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 import secrets
+import socket
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -48,6 +49,14 @@ def _get_allowed_hosts(environ=None):
         hosts.append(render_hostname)
     if DEBUG:
         hosts.extend(["127.0.0.1", "localhost", "[::1]"])
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+                probe.connect(("192.0.2.1", 80))
+                lan_ip = probe.getsockname()[0]
+            if not lan_ip.startswith("127.") and lan_ip not in hosts:
+                hosts.append(lan_ip)
+        except OSError:
+            pass
     return hosts
 
 

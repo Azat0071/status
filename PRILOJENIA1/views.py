@@ -151,7 +151,11 @@ def collection(request):
 
 
 def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk, is_available=True)
+    product = get_object_or_404(
+        Product.objects.prefetch_related("gallery_images"),
+        pk=pk,
+        is_available=True,
+    )
     availability = product_availability(product, request.store)
     return render(
         request,
@@ -442,9 +446,23 @@ def _orders_payload(orders):
         {
             "id": order.pk,
             "store": order.store.name if order.store else "",
+            "store_address": order.store.address if order.store else "",
             "store_id": order.store_id,
             "total": order.total_price,
-            "items": order.items.count(),
+            "customer_name": order.customer_name,
+            "customer_phone": order.customer_phone,
+            "delivery_address": order.delivery_address,
+            "items": [
+                {
+                    "product_id": item.product_id,
+                    "store_id": order.store_id,
+                    "name": item.product_name,
+                    "quantity": item.quantity,
+                    "sizes": item.sizes,
+                    "unit_price": item.unit_price,
+                }
+                for item in order.items.all()
+            ],
         }
         for order in orders
     ]

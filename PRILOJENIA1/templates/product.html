@@ -34,7 +34,7 @@
         };
     </script>
 </head>
-<body class="bg-obsidian pb-28 font-sans text-white antialiased md:pb-0">
+<body class="bg-obsidian pb-28 font-sans text-white antialiased">
 
     {% if messages %}
         <div class="fixed bottom-6 right-6 z-[60] flex flex-col gap-2">
@@ -50,6 +50,11 @@
                 <span class="font-header text-[18px] font-black tracking-[0.3em] uppercase leading-none sm:text-[22px] sm:tracking-[0.4em]">STATUS</span>
                 <span class="text-[7px] tracking-[0.55em] text-steelGray font-semibold uppercase mt-1">HAUTE COUTURE</span>
             </a>
+
+            <button type="button" onclick="navigateProductBack()" class="flex shrink-0 items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-steelGray transition-colors hover:text-white" aria-label="Назад">
+                <i class="fa-solid fa-arrow-left text-sm" aria-hidden="true"></i>
+                <span>Назад</span>
+            </button>
 
             <div class="hidden md:block">
                 {% include "includes/store_trigger.html" %}
@@ -72,8 +77,38 @@
     </header>
 
     <div class="max-w-7xl mx-auto px-3 pt-4 sm:px-6 sm:pt-6 lg:px-8">
-        <img src="{{ product.image.url }}" alt="{{ product.name }}"
-             class="h-[240px] w-full border border-surfaceBorder object-cover sm:h-[360px] lg:h-[420px]">
+        {% with gallery_images=product.gallery_images.all %}
+            <div data-gallery-stage class="relative touch-pan-y overflow-hidden border border-surfaceBorder bg-surface">
+                <img id="product-main-image" src="{{ product.image.url }}" alt="{{ product.name }}"
+                     class="h-[280px] w-full object-contain sm:h-[460px] lg:h-[600px]">
+                {% if gallery_images %}
+                    <button type="button" data-gallery-prev aria-label="Предыдущее фото"
+                            class="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/20 bg-obsidian/80 text-white hover:border-accent hover:text-accent">
+                        <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" data-gallery-next aria-label="Следующее фото"
+                            class="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center border border-white/20 bg-obsidian/80 text-white hover:border-accent hover:text-accent">
+                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                    </button>
+                {% endif %}
+            </div>
+            {% if gallery_images %}
+                <div class="mt-3 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Фотографии товара">
+                    <button type="button" data-gallery-image data-image-src="{{ product.image.url }}" data-image-alt="{{ product.name }}"
+                            aria-label="Основное фото" aria-pressed="true"
+                            class="h-16 w-16 shrink-0 overflow-hidden border-2 border-accent sm:h-20 sm:w-20">
+                        <img src="{{ product.image.url }}" alt="" class="h-full w-full object-cover">
+                    </button>
+                    {% for photo in gallery_images %}
+                        <button type="button" data-gallery-image data-image-src="{{ photo.image.url }}" data-image-alt="{{ product.name }} — фото {{ forloop.counter|add:1 }}"
+                                aria-label="Фото {{ forloop.counter|add:1 }}" aria-pressed="false"
+                                class="h-16 w-16 shrink-0 overflow-hidden border-2 border-surfaceBorder sm:h-20 sm:w-20">
+                            <img src="{{ photo.image.url }}" alt="" class="h-full w-full object-cover">
+                        </button>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
     </div>
 
     <section class="max-w-7xl mx-auto grid grid-cols-1 items-start gap-6 px-3 pb-12 pt-6 sm:gap-12 sm:px-6 sm:pb-16 sm:pt-8 lg:grid-cols-[1fr_440px] lg:px-8">
@@ -211,11 +246,10 @@
 
     {% include "includes/cart_drawer.html" %}
     <style>
-        body { padding-bottom: 4rem; }
-        @media (min-width: 768px) { body { padding-bottom: 0; } }
+        body { padding-bottom: 7rem; }
     </style>
     <!-- МОБИЛЬНАЯ НИЖНЯЯ ПАНЕЛЬ: ТОЧКИ / ГЛАВНАЯ / КАТАЛОГ / КОРЗИНА -->
-    <nav class="fixed bottom-0 left-0 z-40 flex w-full flex-col border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+    <nav class="fixed bottom-0 left-0 z-40 flex w-full flex-col border-t border-surfaceBorder bg-obsidian/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
         <div class="flex justify-center border-b border-surfaceBorder px-1 py-1">
             {% include "includes/store_plates.html" %}
         </div>
@@ -248,5 +282,61 @@
             {% endif %}
         </div>
     </nav>
+    <script>
+        function navigateProductBack() {
+            const referrer = document.referrer;
+            if (referrer && new URL(referrer).origin === window.location.origin && window.history.length > 1) {
+                window.history.back();
+                return;
+            }
+            window.location.assign("{% url 'collection' %}");
+        }
+
+        const galleryMainImage = document.getElementById('product-main-image');
+        const galleryButtons = Array.from(document.querySelectorAll('[data-gallery-image]'));
+        const galleryStage = document.querySelector('[data-gallery-stage]');
+        let activeGalleryIndex = 0;
+        let galleryPointerStart = null;
+
+        function showGalleryImage(index) {
+            if (!galleryButtons.length || !galleryMainImage) return;
+            activeGalleryIndex = (index + galleryButtons.length) % galleryButtons.length;
+            const activeButton = galleryButtons[activeGalleryIndex];
+            galleryMainImage.src = activeButton.dataset.imageSrc;
+            galleryMainImage.alt = activeButton.dataset.imageAlt;
+            galleryButtons.forEach((button, buttonIndex) => {
+                const isActive = buttonIndex === activeGalleryIndex;
+                button.setAttribute('aria-pressed', String(isActive));
+                button.classList.toggle('border-accent', isActive);
+                button.classList.toggle('border-surfaceBorder', !isActive);
+            });
+        }
+
+        galleryButtons.forEach((button, index) => {
+            button.addEventListener('click', () => showGalleryImage(index));
+        });
+        document.querySelector('[data-gallery-prev]')?.addEventListener('click', () => {
+            showGalleryImage(activeGalleryIndex - 1);
+        });
+        document.querySelector('[data-gallery-next]')?.addEventListener('click', () => {
+            showGalleryImage(activeGalleryIndex + 1);
+        });
+        galleryStage?.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'touch') {
+                galleryPointerStart = { x: event.clientX, y: event.clientY };
+            }
+        });
+        galleryStage?.addEventListener('pointerup', (event) => {
+            if (!galleryPointerStart) return;
+            const deltaX = event.clientX - galleryPointerStart.x;
+            const deltaY = event.clientY - galleryPointerStart.y;
+            galleryPointerStart = null;
+            if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
+            showGalleryImage(activeGalleryIndex + (deltaX < 0 ? 1 : -1));
+        });
+        galleryStage?.addEventListener('pointercancel', () => {
+            galleryPointerStart = null;
+        });
+    </script>
 </body>
 </html>

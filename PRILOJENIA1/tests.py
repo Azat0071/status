@@ -17,8 +17,11 @@ from .models import (
     Order,
     OrderItem,
     Product,
+    ProductImage,
     ProductSize,
     RestockRequest,
+    SiteContactSettings,
+    StockMovement,
     Store,
 )
 
@@ -89,8 +92,8 @@ class HomePageTests(TestCase):
         self.override_media = override_settings(MEDIA_ROOT=self.media_dir.name)
         self.override_media.enable()
         self.store = Store.objects.create(
-            name="Токтогула",
-            address="ул. Токтогула, 87",
+            name="Чуй",
+            address="пр. Чуй, 322",
             is_default=True,
         )
 
@@ -110,6 +113,98 @@ class HomePageTests(TestCase):
             'href="#home" aria-current="page" class="text-[#b83b4b] hover:text-white',
         )
         self.assertContains(response, "Мой профиль")
+        self.assertContains(response, "01 / МАТЕРИАЛЫ")
+        self.assertNotContains(response, "портновское искусство")
+        self.assertNotContains(response, "ПОРТНОВСКОЕ МАСТЕРСТВО")
+        self.assertNotContains(response, "ОГРАНИЧЕННАЯ СЕРИЯ")
+        self.assertNotContains(response, "50 экземпляров")
+
+    def test_store_locations_link_to_their_2gis_search(self):
+        Store.objects.create(
+            name="Киевская",
+            address="ул. Киевская, 168",
+            is_default=False,
+        )
+
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "https://2gis.kg/bishkek/search/")
+        self.assertContains(response, "Открыть точку Чуй на карте 2GIS")
+        self.assertContains(response, "Открыть точку Киевская на карте 2GIS")
+
+    def test_homepage_contact_links_come_from_admin_settings(self):
+        contact = SiteContactSettings.objects.get(pk=1)
+        contact.phone = "+996 555 123 456"
+        contact.email = "shop@example.com"
+        contact.instagram_url = "https://instagram.com/global_shop"
+        contact.tiktok_url = "https://tiktok.com/@status_shop"
+        contact.whatsapp_url = "https://wa.me/996555123456"
+        contact.save()
+        self.store.instagram_url = "https://www.instagram.com/status.kgg1/"
+        self.store.save()
+        kievskaya_store = Store.objects.create(
+            name="Киевская",
+            address="ул. Киевская, 168",
+            is_default=False,
+        )
+        kievskaya_store.instagram_url = "https://www.instagram.com/status.premiumm/"
+        kievskaya_store.save()
+
+        session = self.client.session
+        session["store_id"] = kievskaya_store.pk
+        session.save()
+
+        response = self.client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'aria-label="Instagram"')
+        self.assertContains(response, 'href="https://www.instagram.com/status.premiumm/"')
+        self.assertNotContains(response, 'href="https://www.instagram.com/status.kgg1/"')
+        self.assertNotContains(response, 'href="https://instagram.com/global_shop"')
+        self.assertNotContains(response, 'aria-label="TikTok"')
+        self.assertContains(response, 'aria-label="WhatsApp"')
+        self.assertNotContains(response, 'aria-label="Telegram"')
+        self.assertContains(response, "tel:+996555123456")
+        self.assertNotContains(response, "mailto:")
+        self.assertNotContains(response, "shop@example.com")
+        self.assertEqual(
+            response.context["cart_context"]["whatsappUrl"],
+            "https://wa.me/996555123456",
+        )
+
+        session = self.client.session
+        session["store_id"] = self.store.pk
+        session.save()
+        chuy_response = self.client.get("/")
+        self.assertContains(
+            chuy_response,
+            'href="https://www.instagram.com/status.kgg1/"',
+        )
+        self.assertNotContains(
+            chuy_response,
+            'href="https://www.instagram.com/status.premiumm/"',
+        )
+
+        user = get_user_model().objects.create_superuser(
+            username="contact_admin",
+            email="admin@example.com",
+            password=get_random_string(40),
+        )
+        self.client.force_login(user)
+        admin_response = self.client.get(
+            reverse("admin:PRILOJENIA1_sitecontactsettings_change", args=[1])
+        )
+
+        self.assertEqual(admin_response.status_code, 200)
+        for field in ("phone", "email", "whatsapp_url"):
+            self.assertContains(admin_response, f'name="{field}"')
+        self.assertNotContains(admin_response, 'name="tiktok_url"')
+        store_admin_response = self.client.get(
+            reverse("admin:PRILOJENIA1_store_change", args=[kievskaya_store.pk])
+        )
+        self.assertEqual(store_admin_response.status_code, 200)
+        self.assertContains(store_admin_response, 'name="instagram_url"')
 
     def test_collection_page_renders_collection_catalog(self):
         response = self.client.get(reverse("collection"))
@@ -119,7 +214,8 @@ class HomePageTests(TestCase):
         self.assertContains(response, "КОЛЛЕКЦИЯ")
         self.assertContains(response, 'data-filter="knit"')
         self.assertContains(response, "Коллекция скоро появится")
-        self.assertContains(response, "Токтогула")
+        self.assertContains(response, "Чуй")
+        self.assertContains(response, "пр. Чуй, 322")
 
     def test_products_sold_out_everywhere_move_to_out_of_stock_page(self):
         product = Product.objects.create(
@@ -240,6 +336,7 @@ class HomePageTests(TestCase):
             "price",
             "description",
             "image",
+            "search_keywords",
             "color",
             "material",
         ):
@@ -249,6 +346,62 @@ class HomePageTests(TestCase):
         self.assertFalse(product_form.fields["material"].required)
         self.assertContains(response, 'name="sizes-0-size"')
         self.assertContains(response, 'name="sizes-0-quantity"')
+        self.assertContains(response, 'name="gallery_images-0-image"')
+
+    def test_product_detail_renders_additional_gallery_images(self):
+        png_data = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+            b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+            b"\x00\x00\x00\x0bIDAT\x08\xd7c\xf8\xcf\xc0\x00\x00"
+            b"\x03\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00"
+            b"IEND\xaeB`\x82"
+        )
+        product = Product.objects.create(
+            name="Поло с галереей",
+            category=Product.Category.KNIT,
+            price=5000,
+            description="Тестовая галерея",
+            image=SimpleUploadedFile("main.png", png_data, content_type="image/png"),
+        )
+        ProductImage.objects.create(
+            product=product,
+            image=SimpleUploadedFile("side.png", png_data, content_type="image/png"),
+        )
+
+        response = self.client.get(reverse("product_detail", args=[product.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-gallery-image')
+        self.assertContains(response, "/media/products/gallery/side.png")
+
+    def test_collection_search_includes_search_keywords(self):
+        png_data = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+            b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+            b"\x00\x00\x00\x0bIDAT\x08\xd7c\xf8\xcf\xc0\x00\x00"
+            b"\x03\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00"
+            b"IEND\xaeB`\x82"
+        )
+        Product.objects.create(
+            name="Поло STATUS",
+            category=Product.Category.KNIT,
+            price=5000,
+            description="Тестовый поиск",
+            image=SimpleUploadedFile("search.png", png_data, content_type="image/png"),
+            search_keywords="рубашка-поло, тенниска",
+        )
+        product = Product.objects.get(name="Поло STATUS")
+        ProductSize.objects.create(
+            product=product,
+            store=self.store,
+            size="M",
+            quantity=1,
+        )
+
+        response = self.client.get(reverse("collection"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "рубашка-поло, тенниска")
 
 
 class AdminUserManagementTests(TestCase):
@@ -429,8 +582,8 @@ class OrderFlowTests(TestCase):
             phone="+996700123456",
         )
         self.store = Store.objects.create(
-            name="Токтогула",
-            address="ул. Токтогула, 87",
+            name="Чуй",
+            address="пр. Чуй, 322",
             is_default=True,
         )
         self.product = Product.objects.create(
@@ -478,7 +631,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             reverse("create_order"),
             data=json.dumps({
-                "address": "Бишкек, ул. Токтогула, 1",
+                "address": "Бишкек, пр. Чуй, 322",
                 "items": [{"id": self.product.pk, "quantity": 2}],
             }),
             content_type="application/json",
@@ -489,7 +642,7 @@ class OrderFlowTests(TestCase):
         self.assertEqual(order.customer_name, "Айжан Тестова")
         self.assertEqual(order.customer_phone, "+996700123456")
         self.assertEqual(order.total_price, 10000)
-        self.assertEqual(order.delivery_address, "Бишкек, ул. Токтогула, 1")
+        self.assertEqual(order.delivery_address, "Бишкек, пр. Чуй, 322")
         self.assertEqual(OrderItem.objects.get().sizes, "M × 2")
         self.size.refresh_from_db()
         self.assertEqual(self.size.quantity, 1)
@@ -618,6 +771,185 @@ class AdminProfileTests(TestCase):
         self.assertContains(response, "Айжан Тестова")
         self.assertContains(response, "+996700123456")
 
+    def test_manual_stock_change_is_logged_and_not_inline_editable(self):
+        store = Store.objects.create(name="Чуй", address="пр. Чуй, 322")
+        product = Product.objects.create(
+            name="Товар для корректировки",
+            category=Product.Category.KNIT,
+            price=5000,
+            description="Проверка журнала остатков",
+            image="products/test.jpg",
+        )
+        stock = ProductSize.objects.create(
+            product=product,
+            store=store,
+            size="M",
+            quantity=1,
+        )
+
+        change_response = self.client.post(
+            reverse("admin:PRILOJENIA1_productsize_change", args=[stock.pk]),
+            {
+                "product": str(product.pk),
+                "store": str(store.pk),
+                "size": "M",
+                "quantity": "4",
+            },
+        )
+        list_response = self.client.get(reverse("admin:PRILOJENIA1_productsize_changelist"))
+
+        self.assertEqual(change_response.status_code, 302)
+        self.assertEqual(list_response.status_code, 200)
+        self.assertNotContains(list_response, 'name="form-0-quantity"')
+        stock.refresh_from_db()
+        self.assertEqual(stock.quantity, 4)
+        self.assertEqual(stock.movements.get().quantity, 3)
+
+    def test_order_status_changes_use_actions_instead_of_inline_editing(self):
+        customer = get_user_model().objects.create_user(
+            username="status-customer",
+            first_name="Покупатель",
+            password=get_random_string(40),
+        )
+        order = Order.objects.create(
+            user=customer,
+            customer_name="Покупатель",
+            customer_phone="+996700000000",
+            delivery_address="Бишкек",
+            total_price=5000,
+        )
+
+        list_response = self.client.get(reverse("admin:PRILOJENIA1_order_changelist"))
+        change_response = self.client.get(
+            reverse("admin:PRILOJENIA1_order_change", args=[order.pk])
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(change_response.status_code, 200)
+        self.assertNotContains(list_response, 'name="form-0-status"')
+        self.assertNotContains(change_response, 'name="status"')
+
+    def test_admin_cancel_action_returns_ordered_stock(self):
+        customer = get_user_model().objects.create_user(
+            username="cancel-customer",
+            first_name="Покупатель",
+            password=get_random_string(40),
+        )
+        store = Store.objects.create(name="Чуй", address="пр. Чуй, 322")
+        product = Product.objects.create(
+            name="Возвращаемый товар",
+            category=Product.Category.KNIT,
+            price=5000,
+            description="Проверка отмены",
+            image="products/test.jpg",
+        )
+        stock = ProductSize.objects.create(
+            product=product,
+            store=store,
+            size="M",
+            quantity=0,
+        )
+        order = Order.objects.create(
+            user=customer,
+            customer_name="Покупатель",
+            customer_phone="+996700000000",
+            delivery_address="Бишкек",
+            store=store,
+            total_price=10000,
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            product_name=product.name,
+            quantity=2,
+            sizes="M × 2",
+            unit_price=5000,
+        )
+
+        response = self.client.post(
+            reverse("admin:PRILOJENIA1_order_changelist"),
+            {"action": "mark_cancelled", "_selected_action": str(order.pk), "index": "0"},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        stock.refresh_from_db()
+        self.assertEqual(order.status, Order.Status.CANCELLED)
+        self.assertEqual(stock.quantity, 2)
+        self.assertEqual(
+            StockMovement.objects.filter(
+                order=order,
+                kind=StockMovement.Kind.RETURN,
+            ).count(),
+            1,
+        )
+
+    def test_default_store_is_changed_from_store_form_not_list_edit(self):
+        store = Store.objects.create(
+            name="Киевская",
+            address="ул. Киевская, 168",
+            is_default=False,
+        )
+
+        list_response = self.client.get(reverse("admin:PRILOJENIA1_store_changelist"))
+        change_response = self.client.get(
+            reverse("admin:PRILOJENIA1_store_change", args=[store.pk])
+        )
+
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(change_response.status_code, 200)
+        self.assertNotContains(list_response, 'name="form-0-is_default"')
+        self.assertContains(change_response, 'name="is_default"')
+
+    def test_product_admin_totals_are_not_multiplied_by_related_rows(self):
+        store = Store.objects.create(name="Чуй", address="пр. Чуй, 322")
+        product = Product.objects.create(
+            name="Товар с несколькими остатками",
+            category=Product.Category.KNIT,
+            price=5000,
+            description="Проверка итогов админки",
+            image="products/test.jpg",
+        )
+        ProductSize.objects.create(product=product, store=store, size="M", quantity=2)
+        ProductSize.objects.create(product=product, store=store, size="L", quantity=3)
+        customer = get_user_model().objects.create_user(
+            username="totals-customer",
+            first_name="Покупатель",
+            password=get_random_string(40),
+        )
+        order = Order.objects.create(
+            user=customer,
+            customer_name="Покупатель",
+            customer_phone="+996700000000",
+            delivery_address="Бишкек",
+            store=store,
+            total_price=10000,
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            product_name=product.name,
+            quantity=1,
+            unit_price=5000,
+        )
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            product_name=product.name,
+            quantity=1,
+            unit_price=5000,
+        )
+
+        response = self.client.get(reverse("admin:PRILOJENIA1_product_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        admin_product = next(
+            row for row in response.context["cl"].result_list if row.pk == product.pk
+        )
+        self.assertEqual(admin_product.stock_total, 5)
+        self.assertEqual(admin_product.sold_total, 2)
+
     def test_add_product_sidebar_item_is_active_without_product_list_active(self):
         response = self.client.get(reverse("admin:PRILOJENIA1_product_add"))
         navigation_items = [
@@ -692,9 +1024,11 @@ class AdminProfileTests(TestCase):
 class StoreStockTests(TestCase):
     def setUp(self):
         self.main = Store.objects.create(
-            name="Токтогула", address="ул. Токтогула, 87", is_default=True
+            name="Чуй", address="пр. Чуй, 322", is_default=True
         )
-        self.second = Store.objects.create(name="Чуй", address="пр. Чуй, 155")
+        self.second = Store.objects.create(
+            name="Киевская", address="ул. Киевская, 168"
+        )
         self.product = Product.objects.create(
             name="Поло «Borgona»",
             sku="ST-KN-104",
@@ -780,9 +1114,9 @@ class StoreStockTests(TestCase):
         item = next(entry for entry in payload if entry["id"] == fallback.pk)
 
         self.assertEqual(item["totalStock"], 0)
-        self.assertEqual(item["availabilityText"], "Есть в Чуй: 3 шт.")
+        self.assertEqual(item["availabilityText"], "Есть в Киевская: 3 шт.")
         self.assertEqual(item["firstAlternativeStore"]["id"], self.second.pk)
-        self.assertEqual(item["firstAlternativeStore"]["name"], "Чуй")
+        self.assertEqual(item["firstAlternativeStore"]["name"], "Киевская")
 
     def test_homepage_limits_featured_products_without_truncating_catalog(self):
         for index in range(5):
@@ -827,7 +1161,7 @@ class StoreStockTests(TestCase):
         return user
 
     def _checkout(self, items, **extra):
-        payload = {"address": "г. Бишкек, ул. Киевская 1", "items": items}
+        payload = {"address": "г. Бишкек, ул. Киевская, 168", "items": items}
         payload.update(extra)
         return self.client.post(
             reverse("create_order"),
@@ -857,7 +1191,7 @@ class StoreStockTests(TestCase):
         short_line = lines[(self.product.pk, self.main.pk)]
         self.assertEqual(short_line["status"], "short")
         self.assertEqual(short_line["available"], 1)
-        self.assertEqual(short_line["others"][0]["store_name"], "Чуй")
+        self.assertEqual(short_line["others"][0]["store_name"], "Киевская")
         self.assertEqual(lines[(self.sold_out.pk, self.main.pk)]["status"], "gone")
 
     def test_checkout_splits_lines_into_one_order_per_store(self):
@@ -871,7 +1205,22 @@ class StoreStockTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(response.json()["orders"]), 2)
+        payload_orders = response.json()["orders"]
+        self.assertEqual(len(payload_orders), 2)
+        self.assertEqual(payload_orders[0]["customer_name"], "Тест")
+        self.assertEqual(payload_orders[0]["customer_phone"], "+996700000001")
+        self.assertEqual(payload_orders[0]["delivery_address"], "г. Бишкек, ул. Киевская, 168")
+        self.assertEqual(
+            payload_orders[0]["items"],
+            [{
+                "product_id": self.product.pk,
+                "store_id": self.main.pk,
+                "name": "Поло «Borgona»",
+                "quantity": 1,
+                "sizes": "M × 1",
+                "unit_price": 18400,
+            }],
+        )
         orders = list(Order.objects.order_by("store_id"))
         self.assertEqual(
             {order.store_id for order in orders}, {self.main.pk, self.second.pk}
@@ -985,7 +1334,7 @@ class StoreStockTests(TestCase):
             reverse("create_order"),
             data=json.dumps(
                 {
-                    "address": "г. Бишкек, ул. Киевская 1",
+                    "address": "г. Бишкек, ул. Киевская, 168",
                     "items": [{"id": self.product.pk, "quantity": 2}],
                 }
             ),
@@ -993,5 +1342,5 @@ class StoreStockTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 409)
-        self.assertEqual(response.json()["conflicts"][0]["store_name"], "Токтогула")
+        self.assertEqual(response.json()["conflicts"][0]["store_name"], "Чуй")
         self.assertEqual(Order.objects.count(), 0)

@@ -13,6 +13,7 @@
     const stores = Array.isArray(context.stores) ? context.stores : [];
     const urls = context.urls || {};
     const csrfToken = context.csrfToken || '';
+    const whatsappUrl = context.whatsappUrl || '';
     const currentStoreId = Number(context.currentStoreId) || (stores[0] ? Number(stores[0].id) : 0);
 
     const storeById = new Map(stores.map((store) => [String(store.id), store]));
@@ -75,6 +76,7 @@
             price: Number(line.price) || 0,
             image: line.image || '',
             sku: line.sku || '',
+            selected: line.selected !== false,
         };
     }
 
@@ -138,9 +140,9 @@
         return state.lines.reduce((sum, line) => sum + line.quantity, 0);
     }
 
-    function groupedLines() {
+    function groupedLines(lines = state.lines) {
         const groups = new Map();
-        state.lines.forEach((line) => {
+        lines.forEach((line) => {
             if (!groups.has(line.storeId)) {
                 groups.set(line.storeId, {
                     storeId: line.storeId,
@@ -157,8 +159,12 @@
         return Array.from(groups.values());
     }
 
-    function totalPrice() {
-        return state.lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
+    function selectedLines() {
+        return state.lines.filter((line) => line.selected);
+    }
+
+    function totalPrice(lines = state.lines) {
+        return lines.reduce((sum, line) => sum + line.price * line.quantity, 0);
     }
 
     /* ---------- изменение корзины ---------- */
@@ -179,6 +185,7 @@
             existing.quantity = limit
                 ? Math.min(existing.quantity + line.quantity, limit)
                 : existing.quantity + line.quantity;
+            existing.selected = true;
             existing.name = line.name || existing.name;
             existing.price = line.price || existing.price;
             existing.image = line.image || existing.image;
@@ -308,6 +315,10 @@
 
         return `
             <div class="flex items-start gap-3">
+                <input type="checkbox" data-cart-select="${line.productId}" data-store="${line.storeId}"
+                       aria-label="Выбрать ${escapeHtml(line.name || 'товар')} для оформления"
+                       ${line.selected ? 'checked' : ''}
+                       class="mt-1 h-4 w-4 shrink-0 accent-accent">
                 <div class="w-12 h-14 bg-obsidian border border-surfaceBorder shrink-0">
                     ${line.image ? `<img src="${escapeHtml(line.image)}" alt="" class="w-full h-full object-cover">` : ''}
                 </div>
@@ -350,6 +361,7 @@
         const footer = el('cart-footer');
         const totalEl = el('cart-total');
         const checkoutButton = el('cart-checkout');
+        const selected = selectedLines();
 
         if (groupsEl) {
             const groups = groupedLines();
@@ -372,12 +384,13 @@
 
         if (empty) empty.classList.toggle('hidden', state.lines.length > 0);
         if (footer) footer.classList.toggle('hidden', state.lines.length === 0);
-        if (totalEl) totalEl.textContent = money(totalPrice());
+        if (totalEl) totalEl.textContent = money(totalPrice(selected));
         if (checkoutButton) {
-            const groups = groupedLines().length;
-            checkoutButton.textContent = groups > 1
-                ? `Оформить ${groups} ${plural(groups, 'заказ', 'заказа', 'заказов')}`
-                : 'Оформить заказ';
+            const selectedCount = selected.reduce((sum, line) => sum + line.quantity, 0);
+            checkoutButton.disabled = selected.length === 0;
+            checkoutButton.textContent = selectedCount
+                ? `Оформить выбранные (${selectedCount})`
+                : 'Выберите товары';
         }
     }
 
@@ -437,7 +450,8 @@
     /* ---------- оформление ---------- */
 
     function openCheckout() {
-        if (!state.lines.length) return;
+        const selected = selectedLines();
+        if (!selected.length) return;
         if (!context.isAuthenticated) {
             window.location.href = `${urls.login}?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
             return;
@@ -449,7 +463,7 @@
         if (!modal) return;
 
         if (summary) {
-            summary.innerHTML = groupedLines()
+            summary.innerHTML = groupedLines(selected)
                 .map(
                     (group) => `
                 <div class="border border-surfaceBorder bg-surface p-3">
@@ -515,11 +529,62 @@
         modal.classList.remove('flex');
     }
 
+    function createCheckoutId() {
+        if (window.crypto && window.crypto.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+
+        if (window.crypto && window.crypto.getRandomValues) {
+            const bytes = new Uint8Array(16);
+            window.crypto.getRandomValues(bytes);
+            bytes[6] = (bytes[6] & 0x0f) | 0x40;
+            bytes[8] = (bytes[8] & 0x3f) | 0x80;
+            const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+            return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+        }
+
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+            const randomValue = Math.floor(Math.random() * 16);
+            const value = character === 'x' ? randomValue : (randomValue & 0x3) | 0x8;
+            return value.toString(16);
+        });
+    }
+
+    function buildWhatsAppMessage(orders, dropped) {
+        const firstOrder = orders[0];
+        const message = [
+            'Здравствуйте! Хочу оформить заказ.',
+            `Имя: ${firstOrder.customer_name}`,
+            `Телефон: ${firstOrder.customer_phone}`,
+            `Адрес доставки: ${firstOrder.delivery_address}`,
+            '',
+        ];
+        let total = 0;
+
+        orders.forEach((order) => {
+            message.push(`Заказ №${order.id} — ${order.store}, ${order.store_address}`);
+            order.items.forEach((item) => {
+                const itemTotal = Number(item.unit_price) * Number(item.quantity);
+                total += itemTotal;
+                const sizes = item.sizes ? `, размеры: ${item.sizes}` : '';
+                message.push(`• ${item.name} × ${item.quantity}${sizes} — ${itemTotal.toLocaleString('ru-RU')} сом`);
+            });
+            message.push(`Сумма по точке: ${Number(order.total).toLocaleString('ru-RU')} сом`, '');
+        });
+
+        if (dropped.length) message.push('Недоступные позиции в заказ не вошли.', '');
+        message.push(`Итого: ${total.toLocaleString('ru-RU')} сом`);
+        return message.join('\n');
+    }
+
     function submitCheckout(confirmPartial) {
         const addressInput = el('checkout-address');
         const error = el('checkout-error');
         const submit = el('checkout-submit');
         const address = addressInput ? addressInput.value.trim() : '';
+        const selected = selectedLines();
+
+        if (!selected.length) return;
 
         if (!address) {
             if (error) {
@@ -529,9 +594,7 @@
             return;
         }
         if (!state.checkoutId) {
-            state.checkoutId = (window.crypto && window.crypto.randomUUID)
-                ? window.crypto.randomUUID()
-                : `chk-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            state.checkoutId = createCheckoutId();
         }
         if (submit) submit.disabled = true;
         if (error) error.classList.add('hidden');
@@ -546,7 +609,7 @@
                 address,
                 checkout_id: state.checkoutId,
                 confirm_partial: Boolean(confirmPartial),
-                items: state.lines.map((line) => ({
+                items: selected.map((line) => ({
                     id: line.productId,
                     store: line.storeId,
                     quantity: line.quantity,
@@ -577,11 +640,30 @@
                 }
                 const orders = Array.isArray(data.orders) ? data.orders : [];
                 closeCheckout();
-                clear();
+                const orderedKeys = new Set(
+                    orders.flatMap((order) => order.items.map((item) => lineKey(item.product_id, order.store_id)))
+                );
+                const submittedKeys = new Set(selected.map((line) => lineKey(line.productId, line.storeId)));
+                state.lines = state.lines.filter((line) => {
+                    const key = lineKey(line.productId, line.storeId);
+                    if (orderedKeys.has(key)) return false;
+                    if (submittedKeys.has(key)) line.selected = false;
+                    return true;
+                });
+                state.checkoutId = null;
+                save();
+                render();
+                validate();
                 try {
                     sessionStorage.setItem(LAST_ORDERS_KEY, JSON.stringify(orders));
                 } catch (storageError) {
                     /* не критично */
+                }
+                if (whatsappUrl && orders.length) {
+                    const target = new URL(whatsappUrl);
+                    target.searchParams.set('text', buildWhatsAppMessage(orders, data.dropped || []));
+                    window.location.href = target.toString();
+                    return;
                 }
                 window.location.href = '/?orders=1';
             })
@@ -641,6 +723,18 @@
 
         const groupsEl = el('cart-groups');
         if (groupsEl) {
+            groupsEl.addEventListener('change', (event) => {
+                const target = event.target;
+                if (!target.matches('[data-cart-select]')) return;
+                const line = state.lines.find(
+                    (item) => item.productId === Number(target.dataset.cartSelect)
+                        && item.storeId === Number(target.dataset.store)
+                );
+                if (!line) return;
+                line.selected = target.checked;
+                save();
+                render();
+            });
             groupsEl.addEventListener('click', (event) => {
                 const target = event.target.closest('button');
                 if (!target) return;
