@@ -718,6 +718,19 @@ class OrderFlowTests(TestCase):
         self.assertContains(response, "Войти в аккаунт")
 
 
+class AdminRouteAccessTests(TestCase):
+    def test_admin_requires_login_at_custom_path(self):
+        response = self.client.get(reverse("admin:index"))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.startswith(reverse("admin:login")))
+
+    def test_default_admin_path_is_disabled(self):
+        response = self.client.get("/admin/")
+
+        self.assertEqual(response.status_code, 404)
+
+
 class AdminProfileTests(TestCase):
     def setUp(self):
         self.original_password = get_random_string(40)
@@ -739,10 +752,10 @@ class AdminProfileTests(TestCase):
     def test_admin_sidebar_links_to_store_management_sections(self):
         response = self.client.get(reverse("admin:index"))
 
-        self.assertContains(response, "/admin/auth/user/")
-        self.assertContains(response, "/admin/PRILOJENIA1/product/add/")
-        self.assertContains(response, "/admin/PRILOJENIA1/product/")
-        self.assertContains(response, "/admin/PRILOJENIA1/order/")
+        self.assertContains(response, "/my_master/auth/user/")
+        self.assertContains(response, "/my_master/PRILOJENIA1/product/add/")
+        self.assertContains(response, "/my_master/PRILOJENIA1/product/")
+        self.assertContains(response, "/my_master/PRILOJENIA1/order/")
 
     def test_admin_can_review_saved_orders(self):
         user = get_user_model().objects.create_user(

@@ -23,6 +23,7 @@ from PRILOJENIA1 import views
 urlpatterns = [
     path('accounts/login/', views.CustomerLoginView.as_view(), name='login'),
     path('accounts/register/', views.customer_register, name='register'),
+    path('mee/', views.mee, name='mee'),
     path('accounts/logout/', views.customer_logout, name='logout'),
     path('accounts/profile/', views.customer_profile, name='customer_profile'),
     path('orders/create/', views.create_order, name='create_order'),
@@ -31,11 +32,11 @@ urlpatterns = [
     path('product/<int:pk>/', views.product_detail, name='product_detail'),
     path('cart/validate/', views.validate_cart, name='validate_cart'),
     path(
-        'admin/profile/',
+        'my_master/profile/',
         admin.site.admin_view(views.admin_profile),
         name='admin_profile',
     ),
-    path('admin/', admin.site.urls),
+    path('my_master/', admin.site.urls),
     path('collection/', views.collection, name='collection'),
     path('', views.glavnaia_stranisa, name='home'),
 ]

@@ -219,13 +219,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 
 def _product_list_is_active(request):
-    product_path = "/admin/PRILOJENIA1/product/"
+    product_path = "/my_master/PRILOJENIA1/product/"
     add_path = f"{product_path}add/"
     return request.path.startswith(product_path) and not request.path.startswith(add_path)
 
 
 def _product_add_is_active(request):
-    return request.path == "/admin/PRILOJENIA1/product/add/"
+    return request.path == "/my_master/PRILOJENIA1/product/add/"
 
 
 UNFOLD = {
@@ -263,49 +263,49 @@ UNFOLD = {
                     {
                         "title": "Панель управления",
                         "icon": "dashboard",
-                        "link": "/admin/",
+                        "link": "/my_master/",
                     },
                     {
                         "title": "Список товаров",
                         "icon": "inventory_2",
-                        "link": "/admin/PRILOJENIA1/product/",
+                        "link": "/my_master/PRILOJENIA1/product/",
                         "active": _product_list_is_active,
                     },
                     {
                         "title": "Добавить товар",
                         "icon": "add_box",
-                        "link": "/admin/PRILOJENIA1/product/add/",
+                        "link": "/my_master/PRILOJENIA1/product/add/",
                         "active": _product_add_is_active,
                     },
                     {
                         "title": "Пользователи",
                         "icon": "group",
-                        "link": "/admin/auth/user/",
+                        "link": "/my_master/auth/user/",
                     },
                     {
                         "title": "Заказы",
                         "icon": "receipt_long",
-                        "link": "/admin/PRILOJENIA1/order/",
+                        "link": "/my_master/PRILOJENIA1/order/",
                     },
                     {
                         "title": "Склад (остатки)",
                         "icon": "warehouse",
-                        "link": "/admin/PRILOJENIA1/productsize/",
+                        "link": "/my_master/PRILOJENIA1/productsize/",
                     },
                     {
                         "title": "Журнал склада",
                         "icon": "swap_vert",
-                        "link": "/admin/PRILOJENIA1/stockmovement/",
+                        "link": "/my_master/PRILOJENIA1/stockmovement/",
                     },
                     {
                         "title": "Точки продаж",
                         "icon": "storefront",
-                        "link": "/admin/PRILOJENIA1/store/",
+                        "link": "/my_master/PRILOJENIA1/store/",
                     },
                     {
                         "title": "Запросы в ателье",
                         "icon": "mark_email_unread",
-                        "link": "/admin/PRILOJENIA1/restockrequest/",
+                        "link": "/my_master/PRILOJENIA1/restockrequest/",
                     },
                 ],
             },
@@ -315,7 +315,7 @@ UNFOLD = {
         "navigation": [
             {
                 "title": "Профиль и пароль",
-                "link": "/admin/profile/",
+                "link": "/my_master/profile/",
             },
         ],
     },
@@ -330,3 +330,6 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+ALLOWED_HOSTS = ['*']
+

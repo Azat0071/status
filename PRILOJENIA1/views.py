@@ -641,3 +641,6 @@ def admin_profile(request):
         "password_form": password_form,
     }
     return render(request, "admin/profile.html", context)
+
+def mee(request):
+    return render(request, "mee.html")

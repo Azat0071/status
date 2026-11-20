@@ -129,14 +129,14 @@
         <span class="status-eyebrow">СКЛАД</span>
         <h2>Требуют закупки</h2>
       </div>
-      <a href="/admin/PRILOJENIA1/productsize/?q=">Весь склад →</a>
+      <a href="/my_master/PRILOJENIA1/productsize/?q=">Весь склад →</a>
     </div>
     {% if dashboard_low_stocks %}
       <ul class="status-activity-list">
         {% for stock in dashboard_low_stocks %}
         <li class="status-order-row">
           <span class="status-order-main">
-            <a href="/admin/PRILOJENIA1/productsize/{{ stock.pk }}/change/">{{ stock.product.name }}</a>
+            <a href="/my_master/PRILOJENIA1/productsize/{{ stock.pk }}/change/">{{ stock.product.name }}</a>
             <small>{{ stock.store.name }} · размер {{ stock.size }}</small>
           </span>
           <span class="status-order-status {% if stock.quantity == 0 %}status-order-status-cancelled{% else %}status-order-status-processing{% endif %}">{% if stock.quantity == 0 %}нет{% else %}{{ stock.quantity }} шт{% endif %}</span>
@@ -154,7 +154,7 @@
         <span class="status-eyebrow">СКЛАД</span>
         <h2>Движения товара</h2>
       </div>
-      <a href="/admin/PRILOJENIA1/stockmovement/">Весь журнал →</a>
+      <a href="/my_master/PRILOJENIA1/stockmovement/">Весь журнал →</a>
     </div>
     {% if dashboard_recent_movements %}
       <ul class="status-activity-list">
@@ -162,7 +162,7 @@
         <li class="status-order-row">
           <span class="status-order-id {% if movement.quantity < 0 %}status-movement-out{% else %}status-movement-in{% endif %}">{% if movement.quantity < 0 %}−{% else %}+{% endif %}{{ movement.quantity|abs }}</span>
           <span class="status-order-main">
-            <a href="/admin/PRILOJENIA1/product/{{ movement.stock.product_id }}/change/">{{ movement.stock.product.name }}</a>
+            <a href="/my_master/PRILOJENIA1/product/{{ movement.stock.product_id }}/change/">{{ movement.stock.product.name }}</a>
             <small>{{ movement.stock.store.name }} · {{ movement.stock.size }} · {{ movement.get_kind_display|lower }}</small>
           </span>
           <span class="status-order-date">{{ movement.created_at|date:"d.m H:i" }}</span>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>STATUS // Autonomous Monochrome 3D Spinner</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .control-panel {
+            width: 280px;
+            background-color: #0a0a0a;
+            border-right: 1px solid #000000;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 16px;
+            margin: 0 0 10px 0;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #ffffff;
+            padding-bottom: 10px;
+        }
+
+        .section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #aaaaaa;
+            letter-spacing: 1px;
+        }
+
+        .slider {
+            width: 100%;
+            accent-color: #ffffff;
+            background: #000000;
+            cursor: pointer;
+        }
+
+        .file-upload-btn {
+            background: #ffffff;
+            color: #000000;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 11px;
+            border: 1px solid #ffffff;
+        }
+
+        .file-upload-btn:hover {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .display-area {
+            flex-grow: 1;
+            position: relative;
+            background-color: #050505;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .hands-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            filter: grayscale(100%) contrast(110%);
+            pointer-events: none;
+        }
+
+        .hand-half {
+            position: absolute;
+            height: 100%;
+            background-repeat: no-repeat;
+            background-size: cover;
+            transition: transform 0.2s ease-out;
+            width: 100%;
+        }
+
+        .hand-left {
+            left: 0;
+            background-position: left center;
+            clip-path: inset(0 50% 0 0);
+        }
+
+        .hand-right {
+            right: 0;
+            background-position: right center;
+            clip-path: inset(0 0 0 50%);
+        }
+
+        .spinner-viewport {
+            position: relative;
+            z-index: 5;
+            perspective: 1200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #spinning-image {
+            display: none;
+            object-fit: contain;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            border: 1px solid #333333;
+            width: 250px;
+            transform-style: preserve-3d;
+        }
+
+        .status-info {
+            margin-top: auto;
+            font-size: 10px;
+            color: #555555;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h1>SPINER</h1>
+        
+        <div class="section">
+            <label for="file-input">Изображение</label>
+            <label class="file-upload-btn" for="file-input">Выбрать файл</label>
+            <input type="file" id="file-input" accept="image/*">
+        </div>
+
+        <div class="section">
+            <label>Размер)</label>
+            <input type="range" min="100" max="600" value="250" class="slider" id="sizeSlider">
+        </div>
+
+        <div class="section">
+            <label>Скорость вращения</label>
+            <input type="range" min="0" max="100" value="20" class="slider" id="speedSlider">
+        </div>
+
+    </div>
+
+    <div class="display-area">
+        <div class="hands-background">
+            <div class="hand-half hand-left" id="leftHand"></div>
+            <div class="hand-half hand-right" id="rightHand"></div>
+        </div>
+
+        <div class="spinner-viewport">
+            <img id="spinning-image" src="" alt="3D Спиннер">
+        </div>
+    </div>
+
+    <script>
+        // === ВСТАВЬ СЮДА СКОПИРОВАННЫЙ ИЗ ФАЙЛА ТЕКСТ ВНУТРЬ КАВЫЧЕК ===
+        let base64HandImage = "data:image/png;base64,"; 
+
+        // Автоматически подгружаем встроенный фон при открытии сайта
+        document.getElementById('leftHand').style.backgroundImage = `url('${base64HandImage}')`;
+        document.getElementById('rightHand').style.backgroundImage = `url('${base64HandImage}')`;
+
+        const fileInput = document.getElementById('file-input');
+        const img = document.getElementById('spinning-image');
+        const sizeSlider = document.getElementById('sizeSlider');
+        const speedSlider = document.getElementById('speedSlider');
+        const leftHand = document.getElementById('leftHand');
+        const rightHand = document.getElementById('rightHand');
+
+        let angleX = 0;
+        let angleY = 0;
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    img.src = event.target.result;
+                    img.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        sizeSlider.addEventListener('input', function() {
+            const sizeValue = this.value;
+            img.style.width = sizeValue + 'px';
+            
+            // Раздвигаем левую и правую руку в зависимости от выставленного размера фото
+            const displacement = (sizeValue - 250) * 0.4; 
+            leftHand.style.transform = `translateX(${-displacement}px)`;
+            rightHand.style.transform = `translateX(${displacement}px)`;
+        });
+
+        function render3D() {
+            const speed = parseFloat(speedSlider.value) / 15;
+            angleY += speed;
+            angleX = 20 * Math.sin(angleY * 0.02);
+
+            if (img.style.display === 'block') {
+                img.style.transform = `rotateX(${angleX}deg) rotateY(${angleY}deg)`;
+            }
+            requestAnimationFrame(render3D);
+        }
+        render3D();
+    </script>
+</body>
+</html>

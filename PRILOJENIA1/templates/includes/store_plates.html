@@ -5,7 +5,7 @@ compact=True — только названия, без адресов (для п
 {% endcomment %}
 {% if stores %}
     <form method="post" action="{% url 'select_store' %}" role="group" aria-label="Точка самовывоза"
-          class="flex items-center gap-1 p-1 bg-surface border border-surfaceBorder rounded-full whitespace-nowrap">
+          class="flex flex-wrap items-stretch gap-2 whitespace-nowrap">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         {% for point in stores %}
